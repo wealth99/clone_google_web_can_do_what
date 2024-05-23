@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Document</title>
+	<link rel="stylesheet" href="./main.css">
+	<style>
+		html,body {margin: 0;padding: 0;}
+		body {background-color: #0073e6;}
+		ul {list-style: none;margin: 0;padding: 0;}
+		img {width: 100%;}
+		video {position: absolute;width: 0;height: 0;}
+		button {border: none;cursor: pointer;}
+		.sr-only {position: absolute;width: 1px;height: 1px;margin: -1px;overflow: hidden;clip: rect(0 0 0 0);clip-path: polygon(0 0, 0 0, 0 0);}
+		.bg-blue {background-color: #0073e6;}
+			
+		.page-intro {position: relative;z-index: 100;width: 100%;min-height: 100vh;padding: 125px 24px;box-sizing: border-box;opacity: 0;transition: opacity .8s ease;}	
+		.inner {position: relative;display: flex;flex-direction: column;max-width: 1200px;margin: 0 auto;padding: 42px 40px 40px;border-radius: 80px;box-sizing: border-box;}
+
+		.close-button {position: sticky;top: 48px;right: 0;z-index: 400;display: flex;justify-content: center;align-items: center;width: 28px; height: 28px;margin-left: auto;margin-right: 40px;border-radius: 50%;background-color: #000;}
+		.close-button svg {width: 18px;height: 18px;}
+		.close-button svg path {fill: #fff;}
+
+		.page-header {position: sticky;top: 0;z-index: 200;display: flex;justify-content: center;max-width: 864px;width: 100%;margin: -78px auto 0;}
+		.page-header {padding: 32px 0 42px;}
+		.page-header > div {flex: 1}
+		.page-header .text-area {width: 50%;}
+		.page-header .label {display: flex;align-items: center;width: max-content;margin: 18px 0 20px;padding: 0 20px;border-radius: 20px;background-color: #0073e6;color: #fff;font-size: 14px;line-height: 2em;}
+		.page-header .headline {font-size: 60px;line-height: 1.2em;font-weight: 400;}
+		.page-header .point-text {max-width: 336px;margin: 146px 0 44px;}
+		.page-header .point-text span {display: block;margin-bottom: 2px;color: #e42616;font-size: 16px;line-height: 1.5em;font-weight: 700;}
+
+		.page-contents {position: relative;z-index: 300;display: flex;flex-direction: column;width: 100%;padding: 72px 40px;border-radius: 40px;background-color: #fff;box-sizing: border-box;}
+	</style>
+</head>
+<body>
+	<canvas id="three-canvas"></canvas>
+	
+	<div class="page-intro">
+		<div class="inner">
+			<button type="button" class="close-button">
+				<em class="sr-only">close</em>
+				<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"></path>
+                </svg>
+			</button>
+			<div class="page-header">
+				<div class="text-area">
+					<p class="label">the web can</p>
+					<h2 class="headline">Be more than just a landing page</h2>
+					<p class="point-text">
+						<span>TL;DR</span>
+						With the unique value of instant reach and collaboration, and powered by an influx of innovative modern features, the web can play a complementary role to native apps in driving user value and ultimately uplifting your business.
+					</p>
+				</div>
+				<div class="visual-area">
+					<img src="./images/intro_1.svg" alt="">
+				</div>
+			</div>
+			<div class="page-contents">
+				<div class="head">
+					<p class="label">The opportunity</p>
+					<h3 class="headline">A complementary platform for growth</h3>
+					<p class="add">
+						For any business wondering whether to invest in apps or in the web, the answer is: both. The web has evolved from a static content-consumption platform. Today’s web offers businesses virality and instant access to their products, but there’s so much more to unlock. With the right investments, websites can drive growth, engagement, and revenue.
+						<br>
+						Today’s customer experience isn’t bound to any one channel, it spans both apps and the web. And customers want a consistent experience that supports omnichannel ways of interacting. The latest data shows how critical it is for business leaders to prioritize both the app and the website in the holistic customer journey.
+					</p>
+				</div>
+				<div class="stats">
+					<ul class="stata-list">
+						<li>
+							<span class="subject">Different channels</span>
+							<span class="figure"></span>
+							<p class="desc">
+								Percentage of customers who engage with 3 to 5 channels during each purchase journey.
+								<a href="https://www.mckinsey.com/featured-insights/mckinsey-explainers/what-is-omnichannel-marketing" target="_blank" title="Visit McKinsey for more on this statistic.">Source</a>
+							</p>
+						</li>
+						<li>
+							<span class="subject">Omni-channel customers</span>
+							<span class="figure">1.7x</span>
+							<p class="desc">
+								Customers who use multiple channels shop 1.7x more than single channel shoppers. They also spend more.
+								<a href="https://www.mckinsey.com/featured-insights/mckinsey-explainers/what-is-omnichannel-marketing" target="_blank" title="Visit McKinsey for more on this statistic.">Source</a>
+							</p>
+						</li>
+					</ul>
+				</div>
+				<div class="text-area">
+					<p class="label">Moving to a world of ‘web AND native’</p>
+					<p class="desc">
+						Much more than a landing page, it’s now possible to push the boundaries of what’s possible in the browser with modern web technologies.
+					</p>
+				</div>
+				<div class="skills">
+					<img src="" alt="">
+					<p class="desc"></p>
+				</div>
+				<div class="text-area">
+					<p class="desc">
+						While historically, content creation is where the web shined, the platform is also fueling tremendous experimentation and viral growth for other use cases – from graphic design, to musical composition, video editing and of course GenAI tools! As the browser gets increasingly more powerful, the conversation many business leaders are having is on how to harness the power and virality of the web alongside native apps.
+					</p>
+				</div>
+				<div class="quote">
+					
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
