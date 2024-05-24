@@ -1,9 +1,12 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import gsap from 'gsap/all';
+import { gsap, ScrollToPlugin } from 'gsap/all';
 
 export default function main() {
+
+    gsap.registerPlugin(ScrollToPlugin);
+
     const clock = new THREE.Clock();
     const bgColor = '#0073e6';
     const initMeshPositions = [];
@@ -404,16 +407,14 @@ export default function main() {
         const enabledMeshName = enabledMesh.name;
         const position = getInitMeshPosition(enabledMeshName);
 
-        // gsap.to(window, { 
-        //     duration: .8,
-        //     scrollTo: { y: 0 },
-        //     ease: 'sine.out', 
-        //     onComplete: () => {
-        //         resetMeshAnimation(enabledMesh, position);
-        //     }
-        // });
-
-        resetMeshAnimation(enabledMesh, position);
+        gsap.to(window, { 
+            duration: .5,
+            scrollTo: { y: 0 },
+            ease: 'sine.out', 
+            onComplete: () => {
+                resetMeshAnimation(enabledMesh, position);
+            }
+        });
     }
 
     // voting 버튼 클릭 핸들러
