@@ -3,18 +3,54 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { gsap, ScrollToPlugin } from 'gsap/all';
 
+gsap.registerPlugin(ScrollToPlugin);
+
 export default function main() {
-
-    gsap.registerPlugin(ScrollToPlugin);
-
     const clock = new THREE.Clock();
-    const bgColor = '#0073e6';
-    const initMeshPositions = [];
-    let isClicked = false;
+    const cardMeshes = [];
+    const cardMeshesInitInfo = {
+        'card-0': {
+            name: 'card-0',
+            position: new THREE.Vector3(-1.8, 0.9, 0),
+            image: '/images/1_titlecard.png',
+            video: ''
+        },
+        'card-1': {
+            name: 'card-1',
+            position: new THREE.Vector3(0, 0.9, 0),
+            image: '/images/2.png',
+            video: '/videos/2.mp4'
+        },
+        'card-2': {
+            name: 'card-2',
+            position: new THREE.Vector3(1.8, 0.9, 0),
+            image: '/images/3.png',
+            video: '/videos/3.mp4'
+        },
+        'card-3': {
+            name: 'card-3',
+            position: new THREE.Vector3(-1.8, -1.8, 0),
+            image: '/images/4.png',
+            video: '/videos/4.mp4'
+        },
+        'card-4': {
+            name: 'card-4',
+            position: new THREE.Vector3(0, -1.8, 0),
+            image: '/images/5.png',
+            video: '/videos/5.mp4'
+        },
+        'card-5': {
+            name: 'card-5',
+            position: new THREE.Vector3(1.8, -1.8, 0),
+            image: '/images/6.png',
+            video: '/videos/6.mp4'
+        }
+    }
+    let mouseMoved, isClicked = false;
     let enabledMesh;
     let prevScrollY, newScrollY;
-    let mouseMoved;
     let clickStartX, clickStartY, clickStartTime;
+    let cardType;
 
     // Renderer
     const canvas = document.querySelector('#three-canvas');
@@ -31,7 +67,6 @@ export default function main() {
 
     // Scene
     const scene = new THREE.Scene();
-    // scene.background = new THREE.Color(bgColor);
 
     // Camera
     const camera = new THREE.PerspectiveCamera(
@@ -76,13 +111,13 @@ export default function main() {
     // const gridHelper = new THREE.GridHelper(5); 
     // scene.add(gridHelper);
 
-    // Controls
+    // // Controls
     // const controls = new OrbitControls(camera, renderer.domElement);
 
     // Mesh
     const floorMesh = new THREE.Mesh(
         new THREE.PlaneGeometry(10, 10), 
-        new THREE.MeshBasicMaterial({ color: bgColor })
+        new THREE.MeshBasicMaterial({ color: '#0073e6' })
     );
     floorMesh.position.z = -0.05;
     scene.add(floorMesh);
@@ -95,7 +130,7 @@ export default function main() {
     floorShadowMesh.receiveShadow = true;
     scene.add(floorShadowMesh);
 
-    const createCanvasTexture = (imgUrl, videoUrl) => {
+    const createCanvasTexture = (imagePath, videoPath) => {
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         canvas.width = 400;
@@ -105,9 +140,9 @@ export default function main() {
             context.fillStyle = 'white';
             context.fillRect(0, 0, canvas.width, canvas.height);
 
-            await loadImage(imgUrl);
+            await loadImage(imagePath);
 
-            if(videoUrl !== null) await loadVideo(videoUrl);
+            if(videoPath !== '') await loadVideo(videoPath);
 
             const canvasTexture = new THREE.CanvasTexture(canvas);
             canvasTexture.colorSpace = THREE.SRGBColorSpace;
@@ -155,45 +190,46 @@ export default function main() {
 
         return { render }
     }
-
-    const cardMeshes = [];
-    const createCardMesh = async (position, imgUrl, videoUrl = null) => {
-        const render = createCanvasTexture(imgUrl, videoUrl);
+    
+    const boxGeometry = new RoundedBoxGeometry(1.5, 2.4, .4, 10, 2);
+    // const boxMaterial = [
+    //     new THREE.MeshStandardMaterial({ color: 'white' }),
+    //     new THREE.MeshStandardMaterial({ color: 'white' }),
+    //     new THREE.MeshStandardMaterial({ color: 'white' }),
+    //     new THREE.MeshStandardMaterial({ color: 'white' }),
+    //     new THREE.MeshStandardMaterial({ color: 'white' }),
+    //     new THREE.MeshStandardMaterial({ color: 'white' }),
+    // ]
+    const createCardMesh = async (meshInfo) => {
+        const { name, position, image, video } = meshInfo;
+        const render = createCanvasTexture(image, video);
         const texture = await render.render();
-        const boxGeometry = new RoundedBoxGeometry(1.5, 2.4, .4, 10, 2);
         const cardMesh = new THREE.Mesh(
             boxGeometry, [
-                new THREE.MeshPhongMaterial({ color: 'white' }),
-                new THREE.MeshPhongMaterial({ color: 'white' }),
-                new THREE.MeshPhongMaterial({ color: 'white' }),
-                new THREE.MeshPhongMaterial({ color: 'white' }),
-                new THREE.MeshPhongMaterial({ map: texture }),
-                new THREE.MeshPhongMaterial({ color: 'white' }),
-            ]
-        );
+            new THREE.MeshStandardMaterial({ color: 'white' }),
+            new THREE.MeshStandardMaterial({ color: 'white' }),
+            new THREE.MeshStandardMaterial({ color: 'white' }),
+            new THREE.MeshStandardMaterial({ color: 'white' }),
+            new THREE.MeshStandardMaterial({ map: texture }),
+            new THREE.MeshStandardMaterial({ color: 'white' }),
+        ]);
 
         cardMesh.position.copy(position);
-        cardMesh.name = `card-${cardMeshes.length}`;
+        cardMesh.name = name;
         cardMesh.rotation.reorder('YXZ');
         cardMesh.scale.z = 0.08;
         cardMesh.castShadow = true;
-        // cardMesh.renderOrder = 1;
         cardMeshes.push(cardMesh);
 
         scene.add(cardMesh);
-
-        initMeshPositions.push({
-            name: `${cardMesh.name}`,
-            position: cardMesh.position.clone()
-        }); 
     }
 
-    createCardMesh(new THREE.Vector3(-1.8, 0.9, 0), '/images/1_titlecard.png');
-    createCardMesh(new THREE.Vector3(0, 0.9, 0), '/images/2.png', '/videos/02.mp4');
-    createCardMesh(new THREE.Vector3(1.8, 0.9, 0), '/images/3.png', '/videos/03.mp4');
-    createCardMesh(new THREE.Vector3(-1.8, -1.8, 0), '/images/4.png', '/videos/04.mp4');
-    createCardMesh(new THREE.Vector3(0, -1.8, 0), '/images/5.png', '/videos/05.mp4');
-    createCardMesh(new THREE.Vector3(1.8, -1.8, 0), '/images/6.png', '/videos/06.mp4');
+    createCardMesh(cardMeshesInitInfo['card-0']);
+    createCardMesh(cardMeshesInitInfo['card-1']);
+    createCardMesh(cardMeshesInitInfo['card-2']);
+    createCardMesh(cardMeshesInitInfo['card-3']);
+    createCardMesh(cardMeshesInitInfo['card-4']);
+    createCardMesh(cardMeshesInitInfo['card-5']);
 
     const animate = () => {
         // const delta = clock.getDelta();
@@ -232,10 +268,11 @@ export default function main() {
 
     // documnet 클릭 핸들러
     const handleDocumentClick = event => {
+        if(mouseMoved || isClicked) return;
+
+        isClicked = true;
         mouse.x = event.clientX / canvas.clientWidth * 2 - 1;
         mouse.y = -(event.clientY / canvas.clientHeight * 2 - 1);
-
-        if(mouseMoved || isClicked) return;
 
         raycaster.setFromCamera(mouse, camera);
 
@@ -244,16 +281,15 @@ export default function main() {
 
         if(isIntersect) {
             const object = intersects[0].object;
-            updateCardMeshAnimation(object);
+            animateCardMesh(object);
         }
     }
 
     // card mesh 애니메이션
-    const updateCardMeshAnimation = (object) =>  {
-        const position = getInitMeshPosition(object.name);
+    const animateCardMesh = (object) =>  {
+        const position = cardMeshesInitInfo[object.name].position;
         const { x, y , z } = position;
 
-        isClicked = true;
         enabledMesh = object;
         updateBodyCursor('');
 
@@ -296,33 +332,34 @@ export default function main() {
         }, 300);
     }
 
-    // document 마우스무브 핸들러
-    const handleDocumentMousemove = e => {
-        mouse.x = e.clientX / canvas.clientWidth * 2 - 1;
-        mouse.y = -(e.clientY / canvas.clientHeight * 2 - 1);
-
-        if(isClicked) return;
-
-        raycaster.setFromCamera(mouse, camera);
-
-        const intersects = raycaster.intersectObjects(cardMeshes);
-        const isIntersect = intersects.length > 0;     
-
-        isIntersect ? updateHoverAnimation(isIntersect ? intersects[0].object : null) : updateHoverAnimation();
-    }
-
-    // mesh 호버 애니메이션
-    const updateHoverAnimation = (object = null) => {
+    // card mesh 호버 애니메이션
+    const animateCardMeshHover = (object = null) => {
         updateBodyCursor(object ? 'pointer' : '');
+
 
         for(const mesh of cardMeshes) {
             const position = object === mesh ? .1 : 0;
             gsap.to(mesh.position, { 
-                duration: .5, 
+                duration: .5,
                 z: position, 
                 ease: 'power1.out'
             });
         }
+    }
+
+    // document 마우스무브 핸들러
+    const handleDocumentMousemove = e => {
+        if(isClicked) return;
+
+        mouse.x = e.clientX / canvas.clientWidth * 2 - 1;
+        mouse.y = -(e.clientY / canvas.clientHeight * 2 - 1);
+
+        raycaster.setFromCamera(mouse, camera);
+
+        const intersects = raycaster.intersectObjects(cardMeshes);
+        const isIntersect = intersects.length > 0;    
+
+        isIntersect ? animateCardMeshHover(intersects[0].object) : animateCardMeshHover();
     }
 
     // document 마우스다운 핸들러
@@ -345,15 +382,8 @@ export default function main() {
         }
     }
 
-    // 초기화 할 mesh position 값 가져오기
-    const getInitMeshPosition = name => {
-        return initMeshPositions.filter(cardMeshesPosition => {
-            return cardMeshesPosition.name === `${name}`;
-        })[0].position;
-    }
-
     // mesh 리셋 애니메이션
-    const resetMeshAnimation = (mesh, position) => {
+    const animateResetMesh = (mesh, position) => {
         const { x, y, z } = position;
 
         const pageIntro = document.querySelector('.page-intro');
@@ -405,16 +435,21 @@ export default function main() {
         if(!isClicked) return;
         
         const enabledMeshName = enabledMesh.name;
-        const position = getInitMeshPosition(enabledMeshName);
+        const position = cardMeshesInitInfo[enabledMeshName].position;
 
-        gsap.to(window, { 
-            duration: .5,
-            scrollTo: { y: 0 },
-            ease: 'sine.out', 
-            onComplete: () => {
-                resetMeshAnimation(enabledMesh, position);
-            }
-        });
+        if(window.scrollY > 0) {
+            gsap.to(window, { 
+                duration: .5,
+                scrollTo: { y: 0 },
+                ease: 'sine.out', 
+                onComplete: () => {
+                    animateResetMesh(enabledMesh, position);
+                }
+            });
+            return;
+        }
+
+        animateResetMesh(enabledMesh, position);
     }
 
     // voting 버튼 클릭 핸들러
@@ -433,8 +468,8 @@ export default function main() {
         }
     }
 
-    // splash 애니메이션
-    const splashAnimation = () => {
+    // loadding splash 애니메이션
+    const animateloadding = () => {
         const pageSplash = document.querySelector('.page-splash');
         const inner = document.querySelector('.page-splash .inner');
         const tl = gsap.timeline();
@@ -452,15 +487,15 @@ export default function main() {
                 ease: 'power3.out', 
                 onComplete: () => {
                     pageSplash.style.display = 'none';
-                    switchAnimation(true);
+                    animateCircle(true);
+                    animateCardMeshSort('grid');
                 }
             }
         );
-            
     }
 
     // 바닥 mesh 투명 토글
-    const toggleFloorMeshTransparent = active => {
+    const updateFloorMeshState = active => {
         floorMesh.material.opacity = active ? 0 : 1;
         floorMesh.material.transparent = active ? true : false;
         floorMesh.material.needsUpdate = true;
@@ -471,20 +506,20 @@ export default function main() {
     }
 
     // switch 버튼 애니메이션
-    const switchAnimation = active => {
+    const animateCircle = active => {
         const switchCircles = document.querySelectorAll('.switch-circle');
         
-        toggleFloorMeshTransparent(true);
+        updateFloorMeshState(true);
         if(active) {
             gsap.fromTo(switchCircles,
-                { scale: 1.2 },
+                { scale: .12 },
                 { 
                     duration: .8,
                     scale: 14,
                     ease: 'cubic-bezier(0.475, 0.175, 0.515, 0.805)', 
                     stagger: { each: .08, from: 'start' },
                     onComplete: () => {
-                        toggleFloorMeshTransparent(false);
+                        updateFloorMeshState(false);
                     }
                 }
             );
@@ -493,14 +528,96 @@ export default function main() {
                 { scale: 14 },
                 { 
                     duration: .4,
-                    scale: 1.2,
+                    scale: .12,
                     ease: 'cubic-bezier(0.185, 0.390, 0.745, 0.535)', 
                     stagger: { each: .08, from: 'end' },
                     onComplete: () => {
-                        toggleFloorMeshTransparent(false);
+                        updateFloorMeshState(false);
                     }
                 })
             ;
+        }
+    }
+
+    // card mesh grid/stack 정렬 애니메이션
+    const animateCardMeshSort = type => {
+        const sortedCardMeshes = cardMeshes.sort((a, b) => {
+            if (a.name > b.name) return 1;
+            if (a.name < b.name) return -1;
+            return 0;
+        });
+
+        if(type === 'grid') {
+            floorMesh.position.z = - 0.05;
+            floorShadowMesh.position.z = - 0.05;
+
+            sortedCardMeshes.forEach((v, i) => {
+                const cardMesh = v;
+                const { x, y, z } = cardMeshesInitInfo[v.name].position;
+
+                gsap.to(cardMesh.rotation, { duration: 0, z: 0, overwrite: true });
+                gsap.to(cardMesh.scale, { duration: 0, x: 1, y: 1, overwrite: true });
+                gsap.fromTo(cardMesh.position, { 
+                    x: 0, 
+                    y: 0, 
+                    z: 0
+                }, { 
+                    duration: .5,
+                    x, y, z,
+                    ease: 'power1.out',
+                    overwrite: true,
+                    onComplete: () => {
+                        isClicked = false;
+                    }
+                });
+            });
+        } 
+
+        if(type === 'stack') {
+            floorMesh.position.z = - 0.1;
+            floorShadowMesh.position.z = - 0.1;
+
+            let step
+            sortedCardMeshes.forEach((v, i) => {
+                const cardMesh = v;
+                const zIndex = - i / 30;
+
+                step = gsap.to(cardMesh.position, { 
+                    duration: .5,
+                    x: 0,
+                    y: 0,
+                    z: zIndex,
+                    ease: 'power1.out',
+                });
+            });
+      
+            step.eventCallback('onComplete', () => {
+                sortedCardMeshes.forEach((v, i) => {
+                    const cardMesh = v;
+
+                    gsap.to(cardMesh.scale, {
+                        duration: .6,
+                        x: 1.3,
+                        y: 1.3,
+                        ease: "back.out(3)",
+                        onComplete: () => {
+                            sortedCardMeshes.some((v, i) => {
+                                const cardMesh = v;
+                                const angle = - Math.PI / 25;
+
+                                gsap.to(cardMesh.rotation, {
+                                    duration: .5, 
+                                    z: angle * i,
+                                    ease: 'power3.out',
+                                });
+                                
+                                if (i === 2) return true;
+                                return false;
+                            });
+                        }
+                    });
+                });
+            }); 
         }
     }
 
@@ -508,21 +625,31 @@ export default function main() {
     const handleSwitchButton = event => {
         event.stopPropagation();
         const target = event.currentTarget;
-        const className = target.getAttribute('class');
+        const hasStackActive = target.classList.contains('stack-active');
+        const hasGridActive = target.classList.contains('grid-active');
 
         target.classList.remove('stack-active', 'grid-active');
-        if(className.includes('stack-active')) {
+        isClicked = true;
+
+        if(hasStackActive) {
             target.classList.add('grid-active');
-            switchAnimation(true);
+            animateCircle(true);
+            animateCardMeshSort('grid');
         }
-        if(className.includes('grid-active')) {
+
+        if(hasGridActive) {
             target.classList.add('stack-active');
-            switchAnimation(false);
+            animateCircle(false);
+            animateCardMeshSort('stack');
         }
     }
 
     window.addEventListener('scroll', handleWindowSrcoll);
     window.addEventListener('resize', handleWindowResize);
+    document.addEventListener('click', handleDocumentClick);
+    document.addEventListener('mousemove', handleDocumentMousemove);
+    document.addEventListener('mousedown', handleDocumentMousedown);
+    document.addEventListener('mouseup', handleDocumentMouseup);
     document.addEventListener('DOMContentLoaded', () => {
         const closeButton = document.querySelector('.close-button');
         const votingButtons = document.querySelector('.voting-buttons');
@@ -531,13 +658,9 @@ export default function main() {
         closeButton.addEventListener('click', handleCloseButton);
         votingButtons.addEventListener('click', handleVotingButton);
         switchModeButton.addEventListener('click', handleSwitchButton);
-
-        splashAnimation();
+        
+        animateloadding();
     });
-    document.addEventListener('click', handleDocumentClick)
-    document.addEventListener('mousemove', handleDocumentMousemove);
-    document.addEventListener('mousedown', handleDocumentMousedown);
-    document.addEventListener('mouseup', handleDocumentMouseup);
 
     animate();
 }

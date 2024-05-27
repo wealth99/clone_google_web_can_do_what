@@ -39,7 +39,7 @@ header .nav a {font-size: 16px;line-height: 1.75em;color: var(--color-white);}
 .cards-gallery .switch-mode-button.grid-active .stack-mode .mode-icon {background-color: var(--color-white);}
 .cards-gallery .switch-mode-button.grid-active:hover .stack-mode .mode-icon {transform: translate3d(0px, 0px, 0px) rotate(10deg) scale(0.8, 0.8);}
 .cards-gallery .switch-mode {position:relative;display: flex;flex-shrink: 0;justify-content: center;align-items: center;width: 40px;height: 40px;}
-.cards-gallery .switch-mode .mode-icon {position: relative;display: inline-block;width: 12px;height: 16px;transition: transform 500ms ease;}
+.cards-gallery .switch-mode .mode-icon {position: relative;display: inline-block;width: 12px;height: 16px;border-radius: 2px;transition: transform 500ms ease;}
 .cards-gallery .grid-mode {position: relative;display: flex;flex-wrap: wrap;width:40px;height:40px;}
 .cards-gallery .grid-mode .mode-icon {position: relative;display: flex;flex-wrap: wrap;width: 15px;height: 15px;column-gap: 3px;row-gap: 3px;transition: transform 500ms ease;}
 .cards-gallery .grid-mode .dot {width: 6px;height: 6px;border-radius: 50%;background-color: var(--color-white);}
