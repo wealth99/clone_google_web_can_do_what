@@ -50,7 +50,7 @@ export default function main() {
     let enabledMesh;
     let prevScrollY, newScrollY;
     let clickStartX, clickStartY, clickStartTime;
-    let cardType;
+    let cardType = 'grid';
 
     // Renderer
     const canvas = document.querySelector('#three-canvas');
@@ -115,13 +115,6 @@ export default function main() {
     // const controls = new OrbitControls(camera, renderer.domElement);
 
     // Mesh
-    const floorMesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(10, 10), 
-        new THREE.MeshBasicMaterial({ color: '#0073e6' })
-    );
-    floorMesh.position.z = -0.05;
-    scene.add(floorMesh);
-
     const floorShadowMesh = new THREE.Mesh(
         new THREE.PlaneGeometry(10, 10), 
         new THREE.ShadowMaterial({ opacity: .15 })
@@ -261,11 +254,6 @@ export default function main() {
         }
     }
 
-    // document body cursor 수정
-    const updateBodyCursor = type => {
-        document.body.style.cursor = type;
-    }
-
     // documnet 클릭 핸들러
     const handleDocumentClick = event => {
         if(mouseMoved || isClicked) return;
@@ -291,7 +279,7 @@ export default function main() {
         const { x, y , z } = position;
 
         enabledMesh = object;
-        updateBodyCursor('');
+        document.body.style.cursor = '';
 
         prevScrollY = window.scrollY;
         document.body.style.overflow = 'hidden';
@@ -318,8 +306,7 @@ export default function main() {
             ease: 'power1.out', 
             onComplete: () => {
                 const pageIntro = document.querySelector('.page-intro');
-                pageIntro.style.opacity = '1';
-                pageIntro.style.display= 'block';
+                gsap.to(pageIntro, { duration: 0, opacity: 1, display: 'block' });
 
                 window.scrollTo(0, 0);
                 document.body.style.overflow = '';
@@ -334,16 +321,18 @@ export default function main() {
 
     // card mesh 호버 애니메이션
     const animateCardMeshHover = (object = null) => {
-        updateBodyCursor(object ? 'pointer' : '');
+        document.body.style.cursor = object ? 'pointer' : '';
 
-
-        for(const mesh of cardMeshes) {
-            const position = object === mesh ? .1 : 0;
-            gsap.to(mesh.position, { 
-                duration: .5,
-                z: position, 
-                ease: 'power1.out'
-            });
+        if(cardType === 'grid') {
+            for(const mesh of cardMeshes) {
+                const position = object === mesh ? .1 : 0;
+    
+                gsap.to(mesh.position, { 
+                    duration: .5,
+                    z: position, 
+                    ease: 'power1.out'
+                });
+            } 
         }
     }
 
@@ -494,22 +483,10 @@ export default function main() {
         );
     }
 
-    // 바닥 mesh 투명 토글
-    const updateFloorMeshState = active => {
-        floorMesh.material.opacity = active ? 0 : 1;
-        floorMesh.material.transparent = active ? true : false;
-        floorMesh.material.needsUpdate = true;
-
-        floorShadowMesh.material.opacity = active ? 0 : .15;
-        floorShadowMesh.material.transparent = active ? true : false;
-        floorShadowMesh.material.needsUpdate = true;
-    }
-
     // switch 버튼 애니메이션
     const animateCircle = active => {
         const switchCircles = document.querySelectorAll('.switch-circle');
         
-        updateFloorMeshState(true);
         if(active) {
             gsap.fromTo(switchCircles,
                 { scale: .12 },
@@ -518,9 +495,6 @@ export default function main() {
                     scale: 14,
                     ease: 'cubic-bezier(0.475, 0.175, 0.515, 0.805)', 
                     stagger: { each: .08, from: 'start' },
-                    onComplete: () => {
-                        updateFloorMeshState(false);
-                    }
                 }
             );
         } else {
@@ -531,9 +505,6 @@ export default function main() {
                     scale: .12,
                     ease: 'cubic-bezier(0.185, 0.390, 0.745, 0.535)', 
                     stagger: { each: .08, from: 'end' },
-                    onComplete: () => {
-                        updateFloorMeshState(false);
-                    }
                 })
             ;
         }
@@ -548,9 +519,6 @@ export default function main() {
         });
 
         if(type === 'grid') {
-            floorMesh.position.z = - 0.05;
-            floorShadowMesh.position.z = - 0.05;
-
             sortedCardMeshes.forEach((v, i) => {
                 const cardMesh = v;
                 const { x, y, z } = cardMeshesInitInfo[v.name].position;
@@ -574,9 +542,6 @@ export default function main() {
         } 
 
         if(type === 'stack') {
-            floorMesh.position.z = - 0.1;
-            floorShadowMesh.position.z = - 0.1;
-
             let step
             sortedCardMeshes.forEach((v, i) => {
                 const cardMesh = v;
@@ -631,17 +596,121 @@ export default function main() {
         target.classList.remove('stack-active', 'grid-active');
         isClicked = true;
 
-        if(hasStackActive) {
+        if (hasStackActive) {
+            cardType = 'grid';
             target.classList.add('grid-active');
             animateCircle(true);
             animateCardMeshSort('grid');
         }
 
-        if(hasGridActive) {
+        if (hasGridActive) {
+            cardType = 'stack';
             target.classList.add('stack-active');
             animateCircle(false);
             animateCardMeshSort('stack');
         }
+    }
+
+    // hover wrapper 애니메이션
+    const animatHoverWrapper = (element, eventType) => {
+        const hasNextButton = element.classList.contains('next-button');
+        const hasShowButton = element.classList.contains('show-button');
+        const firstCardMesh = (() => {
+            return cardMeshes.sort((a, b) => b.position.z - a.position.z)[0]
+        })();
+        let target;
+
+        if(eventType === 'mouseenter') {
+            if(hasNextButton) {
+                target = document.querySelector('.next-card .hover-bg');
+    
+                gsap.to(firstCardMesh.position, {
+                    duration: .8,
+                    x: -1,
+                    z: .5,
+                    ease: 'power1.out'
+                });
+                gsap.to(firstCardMesh.rotation, {
+                    duration: .8,
+                    y: -Math.PI / 5,
+                    ease: 'power1.out'
+                });
+            }
+    
+            if(hasShowButton) {
+                target = document.querySelector('.show-me .hover-bg');
+    
+                gsap.to(firstCardMesh.position, {
+                    duration: .8,
+                    x: 1,
+                    z: .5,
+                    ease: 'power1.out'
+                });
+                gsap.to(firstCardMesh.rotation, {
+                    duration: .8,
+                    y: Math.PI / 5,
+                    ease: 'power1.out'
+                });
+            }
+
+            gsap.to(target, {
+                duration: .8,
+                scaleX: .6,
+                scaleY: 1.15,
+                ease: 'power1.out',
+            });
+        }
+
+        if(eventType === 'mouseleave') {
+            if(hasNextButton) {
+                target = document.querySelector('.next-card .hover-bg');
+    
+                gsap.to(firstCardMesh.position, {
+                    duration: .8,
+                    x: 0,
+                    z: 0,
+                    ease: 'power1.out'
+                });
+                gsap.to(firstCardMesh.rotation, {
+                    duration: .8,
+                    y: 0,
+                    ease: 'power1.out'
+                });
+            }
+    
+            if(hasShowButton) {
+                target = document.querySelector('.show-me .hover-bg');
+    
+                gsap.to(firstCardMesh.position, {
+                    duration: .8,
+                    x: 0,
+                    z: 0,
+                    ease: 'power1.out'
+                });
+                gsap.to(firstCardMesh.rotation, {
+                    duration: .8,
+                    y: 0,
+                    ease: 'power1.out'
+                });
+            }
+
+            gsap.to(target, {
+                duration: .8,
+                scaleX: 0,
+                scaleY: 1.15,
+                ease: 'power1.out',
+            });
+        }
+    }
+
+    // hover wrapper 마우스 액션 핸들러
+    const handleHoverWrapperAction = event => {
+        if(cardType === 'grid') return;
+        
+        const eventType = event.type;
+        const element = event.currentTarget;
+
+        animatHoverWrapper(element, eventType);
     }
 
     window.addEventListener('scroll', handleWindowSrcoll);
@@ -654,10 +723,16 @@ export default function main() {
         const closeButton = document.querySelector('.close-button');
         const votingButtons = document.querySelector('.voting-buttons');
         const switchModeButton = document.querySelector('.switch-mode-button');
+        const nextButton = document.querySelector('.next-button');
+        const showButton = document.querySelector('.show-button');
 
         closeButton.addEventListener('click', handleCloseButton);
         votingButtons.addEventListener('click', handleVotingButton);
         switchModeButton.addEventListener('click', handleSwitchButton);
+        nextButton.addEventListener('mouseenter', handleHoverWrapperAction);
+        nextButton.addEventListener('mouseleave', handleHoverWrapperAction);
+        showButton.addEventListener('mouseenter', handleHoverWrapperAction);
+        showButton.addEventListener('mouseleave', handleHoverWrapperAction);
         
         animateloadding();
     });
