@@ -615,9 +615,7 @@ export default function main() {
     const animatHoverWrapper = (element, eventType) => {
         const hasNextButton = element.classList.contains('next-button');
         const hasShowButton = element.classList.contains('show-button');
-        const firstCardMesh = (() => {
-            return cardMeshes.sort((a, b) => b.position.z - a.position.z)[0]
-        })();
+        const firstCardMesh = cardMeshes.sort((a, b) => b.position.z - a.position.z)[0];
         let target;
 
         if(eventType === 'mouseenter') {
