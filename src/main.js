@@ -235,20 +235,6 @@ export default function main() {
         const pixelSize = window.innerWidth * ((1 / width) * size.x); // size.x is the width of the object
         console.log('Pixel Size:', pixelSize);
 
-        // let boundingBox = new THREE.Box3().setFromObject(cardMesh);
-        // let size = new THREE.Vector3(0,0,0);
-        // size = boundingBox.getSize(size);
-
-        // const vFov = (camera.fov * Math.PI) / 180;
-        // const height = 2 * Math.tan(vFov / 2) * camera.position.z;
-        // const aspect = window.innerWidth / window.innerHeight;
-        // const width = height * aspect;
-        // const pixelSize = window.innerWidth * ((1 / width) * 1.5) // (e.g. sizeOfObject = 0.2)
-        // console.log(vFov, height, aspect, width, pixelSize);
-
-        // let parameters = cardMesh.geometry.parameters;
-        // console.log(parameters.width)
-
         scene.add(cardMesh);
     }
 
@@ -932,25 +918,6 @@ export default function main() {
         animateCardMesh(firstCardMesh);
         animateShowBg();
     }
-
-    const calculatePixelSize = (cardMesh) => {
-        // Bounding box for the card mesh
-        let boundingBox = new THREE.Box3().setFromObject(cardMesh);
-        let size = new THREE.Vector3(0,0,0);
-        size = boundingBox.getSize(size);
-
-        console.log(boundingBox, size);
-    
-        // Camera settings and aspect ratio
-        const vFov = (camera.fov * Math.PI) / 180;
-        const height = 2 * Math.tan(vFov / 2) * camera.position.z;
-        const aspect = window.innerWidth / window.innerHeight;
-        const width = height * aspect;
-    
-        // Pixel size calculation
-        const pixelSize = window.innerWidth * ((1 / width) * size.x); // size.x is the width of the object
-        console.log('Pixel Size:', pixelSize);
-    };
 
     window.addEventListener('scroll', handleWindowScroll);
     window.addEventListener('resize', handleWindowResize);
