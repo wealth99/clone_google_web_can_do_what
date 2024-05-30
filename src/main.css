@@ -11,17 +11,8 @@
     --color-black: #000;
 }
 
-.blue-bg {background-color: var(--color-blue);}
-.blue-hover {background-color: var(--color-blue-hover);}
-.red-bg {background-color: var(--color-red);}
-.red-hover {background-color: var(--color-red-hover);}
-.yellow-bg {background-color: var(--color-yellow);}
-.yellow-hover {background-color: var(--color-yellow-hover);}
-.green-bg {background-color: var(--color-green);}
-.green-hover {background-color: var(--color-green-hover);}
-
 html, body {margin: 0;padding: 0;}
-body {background-color: var(--color-blue);color: #202124;}
+body {color: #202124;}
 ul {list-style: none;margin: 0;padding: 0;}
 p {margin: 0;}
 a {text-decoration: none;}
@@ -31,11 +22,31 @@ button {border: none;cursor: pointer;}
 .sr-only {position: absolute;width: 1px;height: 1px;margin: -1px;overflow: hidden;clip: rect(0 0 0 0);clip-path: polygon(0 0, 0 0, 0 0);}
 * {box-sizing: border-box;}
 
+body.yellow-mode {background-color: var(--color-yellow);}
+body.yellow-mode .cards-gallery .hover-bg {background-color: var(--color-red);}
+body.yellow-mode .cards-gallery .hover-bg-2 {background-color: var(--color-yellow-hover);}
+
+body.red-mode {background-color: var(--color-red);}
+body.red-mode .cards-gallery .hover-bg {background-color: var(--color-blue);}
+body.red-mode .cards-gallery .hover-bg-2 {background-color: var(--color-red-hover);}
+
+body.blue-mode {background-color: var(--color-blue);}
+body.blue-mode .cards-gallery .hover-bg {background-color: var(--color-yellow);}
+body.blue-mode .cards-gallery .hover-bg-2 {background-color: var(--color-blue-hover);}
+
+body.blue-mode-2 {background-color: var(--color-blue);}
+body.blue-mode-2 .cards-gallery .hover-bg {background-color: var(--color-green);}
+body.blue-mode-2 .cards-gallery .hover-bg-2 {background-color: var(--color-blue-hover);}
+
+body.green-mode {background-color: var(--color-green);}
+body.green-mode .cards-gallery .hover-bg {background-color: var(--color-red);}
+body.green-mode .cards-gallery .hover-bg-2 {background-color: var(--color-green-hover);}
+
 header {position: fixed;top:0;left:0;width: 100%;z-index: 100;}
 header .nav {display: flex;justify-content: space-between;padding: 34px 40px;}
 header .nav a {font-size: 16px;line-height: 1.75em;color: var(--color-white);}
 
-.cards-gallery {position: fixed;top:0;left:0;width: 100%;height: 100vh;background-color: var(--color-blue);}
+.cards-gallery {position: fixed;top:0;left:0;width: 100%;height: 100vh;}
 
 .cards-gallery .hover-wraaper {position: absolute;top: 0;left: 0;z-index: -1;display: flex;width: 100%;height: 100%;}
 .cards-gallery .hover-wraaper > div {position: relative;display: flex;align-items: center;width: 50%;height: 100%;overflow: hidden;}
@@ -50,10 +61,10 @@ header .nav a {font-size: 16px;line-height: 1.75em;color: var(--color-white);}
 .cards-gallery.grid-mode .card-button, .cards-gallery.page-open .card-button {pointer-events: none;}
 .cards-gallery.grid-mode .next-button span, .cards-gallery.page-open .next-button span {transform: translate3d(-50px, 0px, 0px);opacity: 0;}
 .cards-gallery.grid-mode .show-button span, .cards-gallery.page-open .show-button span {transform: translate3d( 50px, 0px, 0px);opacity: 0;}
-.cards-gallery:not(.grid-mode) .next-button:hover span {transform: translate3d(-50px, 0px, 0px);opacity: 1;color: var(--color-white);}
-.cards-gallery:not(.grid-mode) .next-button:hover span::before {transform: translate3d(-20px, 0px, 0px);opacity: 1;background-color: var(--color-white);}
-.cards-gallery:not(.grid-mode) .show-button:hover span {transform: translate3d(50px, 0px, 0px);opacity: 1;color: var(--color-white);}
-.cards-gallery:not(.grid-mode) .show-button:hover span::before {transform: translate3d(20px, 0px, 0px);opacity: 1;background-color: var(--color-white);}
+.cards-gallery:not(.grid-mode):not([inert]) .next-button:hover span {transform: translate3d(-50px, 0px, 0px);opacity: 1;color: var(--color-white);}
+.cards-gallery:not(.grid-mode):not([inert]) .next-button:hover span::before {transform: translate3d(-20px, 0px, 0px);opacity: 1;background-color: var(--color-white);}
+.cards-gallery:not(.grid-mode):not([inert]) .show-button:hover span {transform: translate3d(50px, 0px, 0px);opacity: 1;color: var(--color-white);}
+.cards-gallery:not(.grid-mode):not([inert]) .show-button:hover span::before {transform: translate3d(20px, 0px, 0px);opacity: 1;background-color: var(--color-white);}
 
 .cards-gallery .card-button {position: absolute;display: flex;align-items: center;width: calc(50% - 260px);height: 100%;text-align: right;font-size: 36px;font-weight: 700;line-height: 44px;color: #202124;}
 .cards-gallery .card-button span {position: relative;opacity: .5;transition: transform .2s ease-in-out,color .25s ease-in-out, opacity .2s linear;}
