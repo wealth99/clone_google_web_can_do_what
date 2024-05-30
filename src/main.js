@@ -6,7 +6,6 @@ import { gsap, ScrollToPlugin } from 'gsap/all';
 gsap.registerPlugin(ScrollToPlugin);
 
 export default function main() {
-    const clock = new THREE.Clock();
     const cardMeshes = [];
     const cardMeshesZindex = [];
     const cardMeshesInitInfo = {
@@ -115,20 +114,20 @@ export default function main() {
     directionalLight.shadow.bottom = -15;
     directionalLight.shadow.left = -15;
 
-    // LightHelper
-    const lightHelper = new THREE.DirectionalLightHelper(directionalLight);
-    scene.add(lightHelper);
+    // // LightHelper
+    // const lightHelper = new THREE.DirectionalLightHelper(directionalLight);
+    // scene.add(lightHelper);
 
-    // AxesHelper
-    const axesHelper = new THREE.AxesHelper(3);
-    scene.add(axesHelper);
+    // // AxesHelper
+    // const axesHelper = new THREE.AxesHelper(3);
+    // scene.add(axesHelper);
 
-    // GridHelper
-    const gridHelper = new THREE.GridHelper(5); 
-    scene.add(gridHelper);
+    // // GridHelper
+    // const gridHelper = new THREE.GridHelper(5); 
+    // scene.add(gridHelper);
 
-    // Controls
-    const controls = new OrbitControls(camera, renderer.domElement);
+    // // Controls
+    // const controls = new OrbitControls(camera, renderer.domElement);
 
     // Mesh
     const floorShadowMesh = new THREE.Mesh(
@@ -198,21 +197,21 @@ export default function main() {
     }
     
     const boxGeometry = new RoundedBoxGeometry(1.5, 2.4, .4, 10, 2);
-    const commonMaterial = new THREE.MeshStandardMaterial({ color: 'white' });
+    const boxMaterial = new THREE.MeshStandardMaterial({ color: 'white' });
     const createCardMesh = async (meshInfo) => {
         const { name, position, image, video } = meshInfo;
         const texture =  await createCanvasTexture(image, video);
         const cardMesh = new THREE.Mesh(
             boxGeometry, [
-                commonMaterial,
-                commonMaterial,
-                commonMaterial,
-                commonMaterial,
+                boxMaterial,
+                boxMaterial,
+                boxMaterial,
+                boxMaterial,
                 new THREE.MeshStandardMaterial({ map: texture }),
-                commonMaterial,
+                boxMaterial,
             ]
         );
-
+        
         cardMesh.position.copy(position);
         cardMesh.name = name;
         cardMesh.rotation.reorder('YXZ');
@@ -220,30 +219,12 @@ export default function main() {
         cardMesh.castShadow = true;
         cardMeshes.push(cardMesh);
 
-        // Bounding box for the card mesh
-        let boundingBox = new THREE.Box3().setFromObject(cardMesh);
-        let size = new THREE.Vector3(0,0,0);
-        size = boundingBox.getSize(size);
-
-        // Camera settings and aspect ratio
-        const vFov = (camera.fov * Math.PI) / 180;
-        const height = 2 * Math.tan(vFov / 2) * camera.position.z;
-        const aspect = window.innerWidth / window.innerHeight;
-        const width = height * aspect;
-
-        // Pixel size calculation
-        const pixelSize = window.innerWidth * ((1 / width) * size.x); // size.x is the width of the object
-        console.log('Pixel Size:', pixelSize);
-
         scene.add(cardMesh);
     }
 
     Object.values(cardMeshesInitInfo).forEach(createCardMesh);
 
     const animate = () => {
-        // const delta = clock.getDelta();
-        // const time = clock.getElapsedTime();
-
         requestAnimationFrame(animate);
         renderer.render(scene, camera);
     }
@@ -299,11 +280,13 @@ export default function main() {
         prevScrollY = window.scrollY;
         document.body.style.overflow = 'hidden';
 
+        // cardType stack 시에만
         if(cardType === 'stack') {
             const excludeFirstMeshes = cardMeshes
                 .sort((a, b) => b.position.z - a.position.z)
                 .filter((v, i) => i !== 0);
 
+            // 첫번째 mesh 제외 
             for (const excludeFirstMesh of excludeFirstMeshes) {
                 gsap.to(excludeFirstMesh.rotation, {
                     duration: .5,
@@ -318,8 +301,8 @@ export default function main() {
             gsap.to(object.position, {
                 duration: 1,
                 keyframes: {
-                    "0%":   { x, y, z },
-                    "100%": { x: 0, y: -0.52, z: 3 },
+                    '0%':   { x, y, z },
+                    '100%': { x: 0, y: -0.52, z: 3 },
                     easeEach: 'sine.out'
                 },
                 ease: 'sine.out',
@@ -331,7 +314,7 @@ export default function main() {
             duration: 1, 
             x: 1,
             y: 1,
-            ease: 'power1.out' 
+            ease: 'power1.out',
         }); 
         gsap.to(object.rotation, { 
             duration: .2, 
@@ -341,12 +324,21 @@ export default function main() {
         gsap.to(object.rotation, { 
             duration: 1, 
             y: Math.PI,
-            ease: 'power1.out' 
+            ease: 'power1.out',
+            onUpdate: function() {
+                const progress = this.progress();
+                if (progress > 0.3 && !this.called) {
+                    this.called = true;
+                
+                    object.geometry.dispose();
+                    object.geometry = new RoundedBoxGeometry(1.5, 2.4, 0.4, 10, .1);
+                } 
+            }
         });
         if (cardType !== 'stack') {
             if (object.name === 'card-2' || object.name === 'card-5') {
                 gsap.to(object.position, {
-                    duration: 1,
+                    duration: .8,
                     x: 0,
                     y: -.52,
                     z: 3,
@@ -356,9 +348,9 @@ export default function main() {
                 gsap.to(object.position, {
                     duration: 1,
                     keyframes: {
-                        "0%":   { x, y, z, },
-                        "50%":  { x: 1, y: 0, z: 1.5 },
-                        "100%": { x: 0, y: -0.52, z: 3 },
+                        '0%':   { x, y, z, },
+                        '50%':  { x: 1, y: 0, z: 1.5 },
+                        '100%': { x: 0, y: -0.52, z: 3 },
                         easeEach: 'sine.out'
                     },
                     ease: 'sine.out',
@@ -371,7 +363,7 @@ export default function main() {
             z: 4.1, 
             delay: .2, 
             ease: 'power1.out', 
-            onComplete: () => {
+            onComplete: function() {
                 gsap.to(pageIntro, { duration: 0, opacity: 1, display: 'block' });
                 gsap.to(cardsGallery, { duration: 0, opacity: 0, display: 'none' });
 
@@ -379,11 +371,6 @@ export default function main() {
                 document.body.style.overflow = '';
             }
         });
-
-        setTimeout(() => {
-            object.geometry.dispose();
-            object.geometry = new RoundedBoxGeometry(1.5, 2.4, 0.4, 10, .1);
-        }, 300);
     }
 
     // card mesh 호버 애니메이션
@@ -406,7 +393,7 @@ export default function main() {
     // document 마우스무브 핸들러
     const handleDocumentMousemove = e => {
         if (isClicked || cardType === 'stack') return;
-
+        
         mouse.x = e.clientX / canvas.clientWidth * 2 - 1;
         mouse.y = -(e.clientY / canvas.clientHeight * 2 - 1);
 
@@ -451,11 +438,6 @@ export default function main() {
 
         gsap.to(pageIntro, { duration: 0, opacity: 0, display: 'none' });
         gsap.to(cardsGallery, { duration: 0, opacity: 1, display: 'block' });
-
-        setTimeout(() => {
-            mesh.geometry.dispose();
-            mesh.geometry = new RoundedBoxGeometry(1.5, 2.4, 0.4, 10, 2);
-        }, 300);
         
         if (window.scrollY > 0) {
             gsap.to(camera.position, { 
@@ -504,14 +486,23 @@ export default function main() {
         gsap.to(mesh.position, { 
             duration: 1,
             x, y, z, 
-            ease: 'power1.out' 
+            ease: 'power1.out',
+            onUpdate: function() {
+                const progress = this.progress();
+                if (progress > 0.3 && !this.called) {
+                    this.called = true;
+                
+                    mesh.geometry.dispose();
+                    mesh.geometry = new RoundedBoxGeometry(1.5, 2.4, 0.4, 10, 2);
+                } 
+            }
         });
         gsap.to(camera.position, { 
             duration: 1, 
             z: 3.3, 
             delay: .3, 
             ease: 'power2.out', 
-            onComplete: () => {
+            onComplete: function() {
                 isClicked = false;
                 isShowClicked = false;
                 cardsGallery.classList.remove('page-open');
@@ -535,7 +526,7 @@ export default function main() {
                 duration: .5,
                 scrollTo: { y: 0 },
                 ease: 'sine.out', 
-                onComplete: () => {
+                onComplete: function() {
                     animateResetMesh(enabledMesh, position);
                 }
             });
@@ -579,7 +570,7 @@ export default function main() {
                 opacity: 0,
                 scale: 0.5, 
                 ease: 'power3.out', 
-                onComplete: () => {
+                onComplete: function() {
                     pageSplash.style.display = 'none';
                     animateCircle(true);
                     animateCardMeshSort('grid');
@@ -610,7 +601,7 @@ export default function main() {
             gsap.fromTo(switchCircles,
                 { scale: 14 },
                 { 
-                    duration: .3,
+                    duration: .5,
                     scale: .12,
                     ease: 'cubic-bezier(0.185, 0.390, 0.745, 0.535)', 
                     stagger: { each: .08, from: 'end' },
@@ -647,7 +638,7 @@ export default function main() {
                         x, y, z,
                         ease: 'power1.out',
                         overwrite: true,
-                        onComplete: () => {
+                        onComplete: function() {
                             isClicked = false;
                         }
                     }
@@ -675,7 +666,7 @@ export default function main() {
                 });
             });
       
-            step.eventCallback('onComplete', () => {
+            step.eventCallback('onComplete', function() {
                 sortedCardMeshes.forEach((v, i) => {
                     const cardMesh = v;
 
@@ -683,28 +674,32 @@ export default function main() {
                         duration: .6,
                         x: 1.3,
                         y: 1.3,
-                        ease: "back.out(3)",
-                        onComplete: () => {
-                            sortedCardMeshes.some((v, i) => {
-                                const cardMesh = v;
-                                const angle = - Math.PI / 25;
-
-                                gsap.to(cardMesh.rotation, {
-                                    duration: .3, 
-                                    z: angle * i,
-                                    ease: 'power3.out',
-                                });
-                                
-                                if (i === 2) return true;
-                                return false;
-                            });
-
-                            cardsGallery.classList.remove('stack-mode', 'grid-mode');
-                            cardsGallery.classList.add('stack-mode');
+                        ease: 'back.out(3)',
+                        onComplete: function() {
+                            if(i === 5) step2Callback();
                         }
                     });
                 });
-            }); 
+            });
+            
+            const step2Callback = () => {
+                sortedCardMeshes.some((v, i) => {
+                    const cardMesh = v;
+                    const angle = - Math.PI / 25;
+
+                    gsap.to(cardMesh.rotation, {
+                        duration: .3, 
+                        z: angle * i,
+                        ease: 'power3.out',
+                    });
+                    
+                    if (i === 2) return true;
+                    return false;
+                });
+
+                cardsGallery.classList.remove('stack-mode', 'grid-mode');
+                cardsGallery.classList.add('stack-mode');
+            }
         }
     }
 
@@ -804,15 +799,15 @@ export default function main() {
 
             gsap.to(cardMesh.scale, {
                 duration: .4,
-                x: "+=.05",
-                y: "+=.05",
+                x: '+=.05',
+                y: '+=.05',
                 ease: 'power1.out'
             });
             gsap.to(cardMesh.scale, {
                 duration: .8,
                 x: 1.3,
                 y: 1.3,
-                ease: "elastic.out(7, 0.6)",
+                ease: 'elastic.out(7, 0.6)',
                 delay: .4
             })
             gsap.to(cardMesh.position, {
@@ -821,6 +816,7 @@ export default function main() {
                 ease: 'power2.out',
                 delay: .5
             })
+
             if (i < 3) {
                 gsap.to(cardMesh.rotation, {
                     duration: .3, 
@@ -836,7 +832,7 @@ export default function main() {
             scaleX: 1.5,
             scaleY: 1.5,
             ease: 'power1.out',
-            onComplete: () => {
+            onComplete: function() {
                 gsap.to(hoverBg, {
                     duration: 0,
                     scaleX: 0,
@@ -857,7 +853,7 @@ export default function main() {
             duration: .8,
             y: -Math.PI * 0.8,
             ease: 'power1.out',
-            onComplete: () => {
+            onComplete: function() {
                 const zIndex = cardMeshesZindex.slice(-1)[0] + -0.03;
 
                 cardsGallery.removeAttribute('inert');
@@ -913,11 +909,28 @@ export default function main() {
 
         isShowClicked = true;
 
-        calculatePixelSize(firstCardMesh)
-
         animateCardMesh(firstCardMesh);
         animateShowBg();
     }
+
+    // 픽셀 크기를 계산하는 함수
+    const calculatePixelSize = (cardMesh) => {
+        // Bounding box for the card mesh
+        let boundingBox = new THREE.Box3().setFromObject(cardMesh);
+        let size = new THREE.Vector3(0,0,0);
+        size = boundingBox.getSize(size);
+
+        // Camera settings and aspect ratio
+        const vFov = (camera.fov * Math.PI) / 180;
+        const height = 2 * Math.tan(vFov / 2) * camera.position.z;
+        const aspect = window.innerWidth / window.innerHeight;
+        const width = height * aspect;
+
+        // Pixel size calculation
+        const pixelSizeWidth = window.innerWidth * ((1 / width) * size.x);
+        const pixelSizeHeight = window.innerHeight * ((1 / height) * size.y);
+        console.log('Pixel Size:', pixelSizeWidth, pixelSizeHeight);
+    };
 
     window.addEventListener('scroll', handleWindowScroll);
     window.addEventListener('resize', handleWindowResize);
