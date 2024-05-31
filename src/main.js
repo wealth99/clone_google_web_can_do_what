@@ -9,42 +9,12 @@ export default function main() {
     const cardMeshes = [];
     const cardMeshesZindex = [];
     const cardMeshesInitInfo = {
-        'card-0': { 
-            name: 'card-0', 
-            position: new THREE.Vector3(-1.8, 0.9, 0),
-            image: '/images/1_titlecard.png',
-            video: '' 
-        },
-        'card-1': { 
-            name: 'card-1', 
-            position: new THREE.Vector3(0, 0.9, 0),
-            image: '/images/2.png',
-            video: '/videos/2.mp4' 
-        },
-        'card-2': { 
-            name: 'card-2', 
-            position: new THREE.Vector3(1.8, 0.9, 0),
-            image: '/images/3.png',
-            video: '/videos/3.mp4' 
-        },
-        'card-3': { 
-            name: 'card-3', 
-            position: new THREE.Vector3(-1.8, -1.8, 0),
-            image: '/images/4.png',
-            video: '/videos/4.mp4' 
-        },
-        'card-4': { 
-            name: 'card-4', 
-            position: new THREE.Vector3(0, -1.8, 0),
-            image: '/images/5.png',
-            video: '/videos/5.mp4' 
-        },
-        'card-5': { 
-            name: 'card-5', 
-            position: new THREE.Vector3(1.8, -1.8, 0),
-            image: '/images/6.png',
-            video: '/videos/6.mp4'
-        }
+        'card-0': { name: 'card-0', position: new THREE.Vector3(-1.8, 0.9, 0), image: '/images/1_titlecard.png', video: '' },
+        'card-1': { name: 'card-1', position: new THREE.Vector3(0, 0.9, 0), image: '/images/2.png', video: '/videos/2.mp4' },
+        'card-2': { name: 'card-2', position: new THREE.Vector3(1.8, 0.9, 0), image: '/images/3.png', video: '/videos/3.mp4' },
+        'card-3': { name: 'card-3', position: new THREE.Vector3(-1.8, -1.8, 0), image: '/images/4.png', video: '/videos/4.mp4' },
+        'card-4': { name: 'card-4', position: new THREE.Vector3(0, -1.8, 0), image: '/images/5.png', video: '/videos/5.mp4' },
+        'card-5': { name: 'card-5', position: new THREE.Vector3(1.8, -1.8, 0), image: '/images/6.png', video: '/videos/6.mp4' }
     }
     const bodyBgColors = [
         ['blue-mode', '#0073e6'],
@@ -138,6 +108,7 @@ export default function main() {
     floorShadowMesh.receiveShadow = true;
     scene.add(floorShadowMesh);
 
+    // 이미지 로딩 
     const loadImage = (context, url) => {
         return new Promise(resolve => {
             const img = new Image();
@@ -151,6 +122,7 @@ export default function main() {
         });
     }
 
+    // 비디오 로딩
     const loadVideo = (context, url) => {
         return new Promise(resolve => {
             const video = document.createElement('video');
@@ -176,6 +148,7 @@ export default function main() {
         });
     }
 
+    // canvas texture 만들기
     const createCanvasTexture = async (imagePath, videoPath) => {
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
@@ -189,8 +162,8 @@ export default function main() {
 
         const texture = new THREE.CanvasTexture(canvas);
         texture.colorSpace = THREE.SRGBColorSpace;
-        texture.generateMipmaps = true; // Mipmap 사용
-        texture.minFilter = THREE.LinearMipmapLinearFilter; // Mipmap 필터링
+        texture.generateMipmaps = true;
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
         texture.magFilter = THREE.LinearFilter;
 
         return texture;
@@ -198,7 +171,7 @@ export default function main() {
     
     const boxGeometry = new RoundedBoxGeometry(1.5, 2.4, .4, 10, 2);
     const boxMaterial = new THREE.MeshStandardMaterial({ color: 'white' });
-    const createCardMesh = async (meshInfo) => {
+    const createCardMesh = async meshInfo => {
         const { name, position, image, video } = meshInfo;
         const texture =  await createCanvasTexture(image, video);
         const cardMesh = new THREE.Mesh(
@@ -325,7 +298,7 @@ export default function main() {
             duration: 1, 
             y: Math.PI,
             ease: 'power1.out',
-            onUpdate: function() {
+            onUpdate() {
                 const progress = this.progress();
                 if (progress > 0.3 && !this.called) {
                     this.called = true;
@@ -363,9 +336,9 @@ export default function main() {
             z: 4.1, 
             delay: .2, 
             ease: 'power1.out', 
-            onComplete: function() {
+            onComplete() {
                 gsap.to(pageIntro, { duration: 0, opacity: 1, display: 'block' });
-                gsap.to(cardsGallery, { duration: 0, opacity: 0, display: 'none' });
+                gsap.to(canvas, { duration: 0, opacity: 0, display: 'none' });
 
                 window.scrollTo(0, 0);
                 document.body.style.overflow = '';
@@ -437,7 +410,7 @@ export default function main() {
         const pageIntro = document.querySelector('.page-intro');
 
         gsap.to(pageIntro, { duration: 0, opacity: 0, display: 'none' });
-        gsap.to(cardsGallery, { duration: 0, opacity: 1, display: 'block' });
+        gsap.to(canvas, { duration: 0, opacity: 1, display: 'block' });
         
         if (window.scrollY > 0) {
             gsap.to(camera.position, { 
@@ -457,19 +430,19 @@ export default function main() {
                 y: 1.3,
                 ease: 'power1.out' 
             });
-            sortedCardMeshes.some((v, i) => {
-                const cardMesh = v;
-                const angle = - Math.PI / 25;
+
+            for(let i = 0; i < sortedCardMeshes.length; i++) {
+                const cardMesh = sortedCardMeshes[i];
+                const angle = - Math.PI / 25 * i;
 
                 gsap.to(cardMesh.rotation, {
-                    duration: .3, 
-                    z: angle * i,
-                    ease: 'power3.out',
+                    duration: .3,
+                    z: angle,
+                    ease: 'power3.out'
                 });
-                
-                if (i === 2) return true;
-                return false;
-            });
+
+                if(i === 2) break;
+            }
         }
 
         gsap.to(hoverBg, {
@@ -487,7 +460,7 @@ export default function main() {
             duration: 1,
             x, y, z, 
             ease: 'power1.out',
-            onUpdate: function() {
+            onUpdate() {
                 const progress = this.progress();
                 if (progress > 0.3 && !this.called) {
                     this.called = true;
@@ -502,7 +475,7 @@ export default function main() {
             z: 3.3, 
             delay: .3, 
             ease: 'power2.out', 
-            onComplete: function() {
+            onComplete() {
                 isClicked = false;
                 isShowClicked = false;
                 cardsGallery.classList.remove('page-open');
@@ -526,7 +499,7 @@ export default function main() {
                 duration: .5,
                 scrollTo: { y: 0 },
                 ease: 'sine.out', 
-                onComplete: function() {
+                onComplete() {
                     animateResetMesh(enabledMesh, position);
                 }
             });
@@ -554,7 +527,7 @@ export default function main() {
     }
 
     // loadding splash 애니메이션
-    const animateloadding = () => {
+    const animateSplash = () => {
         const pageSplash = document.querySelector('.page-splash');
         const inner = document.querySelector('.page-splash .inner');
         const tl = gsap.timeline();
@@ -570,10 +543,11 @@ export default function main() {
                 opacity: 0,
                 scale: 0.5, 
                 ease: 'power3.out', 
-                onComplete: function() {
-                    pageSplash.style.display = 'none';
+                onComplete() {
+                    gsap.to(pageSplash, { duration: 0, display: 'none' });
+
                     animateCircle(true);
-                    animateCardMeshSort('grid');
+                    animateCardMeshSort('grid', true);
                 }
             }
         );
@@ -583,14 +557,14 @@ export default function main() {
     const animateCircle = active => {
         const cardsGallery = document.querySelector('.cards-gallery');
         const switchCircles = document.querySelectorAll('.switch-circle');
-        
+
         if (active) {
             cardsGallery.classList.remove('stack-mode', 'grid-mode');
             cardsGallery.classList.add('grid-mode');
-                
+            
             gsap.fromTo(switchCircles,
                 { scale: .12 },
-                { 
+                {
                     duration: .8,
                     scale: 14,
                     ease: 'cubic-bezier(0.475, 0.175, 0.515, 0.805)', 
@@ -600,7 +574,7 @@ export default function main() {
         } else {
             gsap.fromTo(switchCircles,
                 { scale: 14 },
-                { 
+                {
                     duration: .5,
                     scale: .12,
                     ease: 'cubic-bezier(0.185, 0.390, 0.745, 0.535)', 
@@ -611,96 +585,83 @@ export default function main() {
     }
 
     // card mesh grid/stack 정렬 애니메이션
-    const animateCardMeshSort = type => {
+    const animateCardMeshSort = (type, isLoading = false) => {
         const cardsGallery = document.querySelector('.cards-gallery');
+        const switchModeButton = document.querySelector('.switch-mode-button');
         const sortedCardMeshes = cardMeshes.sort((a, b) => a.name.localeCompare(b.name));
-
-        if (type === 'grid') {
-            sortedCardMeshes.forEach((v, i) => {
-                const cardMesh = v;
-                const { x, y, z } = cardMeshesInitInfo[v.name].position;
-
-                gsap.to(cardMesh.rotation, { 
-                    duration: 0, 
-                    z: 0, 
-                    overwrite: true
-                });
-                gsap.to(cardMesh.scale, { 
-                    duration: 0, 
-                    x: 1,
-                    y: 1, 
-                    overwrite: true 
-                });
-                gsap.fromTo(cardMesh.position, 
+        const effect = {
+            position(target, x, y, z, duration = .5) {
+                gsap.fromTo(target, 
                     { x: 0, y: 0, z: 0 }, 
-                    { 
-                        duration: .5,
-                        x, y, z,
-                        ease: 'power1.out',
-                        overwrite: true,
-                        onComplete: function() {
-                            isClicked = false;
-                        }
-                    }
-                );
-            });
-        } 
-
-        if (type === 'stack') {
-            let step;
-            
-            sortedCardMeshes.forEach((v, i) => {
-                const cardMesh = v;
-                const zIndex = - i / 30;
-
-                if(cardMeshesZindex.length <= 5) {
-                    cardMeshesZindex.push(zIndex);
-                }
-
-                step = gsap.to(cardMesh.position, { 
-                    duration: .5,
-                    x: 0,
-                    y: 0,
-                    z: zIndex,
-                    ease: 'power2.out',
-                });
-            });
-      
-            step.eventCallback('onComplete', function() {
-                sortedCardMeshes.forEach((v, i) => {
-                    const cardMesh = v;
-
-                    gsap.to(cardMesh.scale, {
-                        duration: .6,
-                        x: 1.3,
-                        y: 1.3,
-                        ease: 'back.out(3)',
-                        onComplete: function() {
-                            if(i === 5) step2Callback();
-                        }
-                    });
-                });
-            });
-            
-            const step2Callback = () => {
-                sortedCardMeshes.some((v, i) => {
-                    const cardMesh = v;
-                    const angle = - Math.PI / 25;
-
-                    gsap.to(cardMesh.rotation, {
-                        duration: .3, 
-                        z: angle * i,
-                        ease: 'power3.out',
-                    });
-                    
-                    if (i === 2) return true;
-                    return false;
-                });
-
-                cardsGallery.classList.remove('stack-mode', 'grid-mode');
-                cardsGallery.classList.add('stack-mode');
+                    { duration, x, y, z, ease: 'power1.out', overwrite: true }
+                )
+            },
+            position2(taregt, x, y, z, ease, overwrite = false, duration = .5) {
+                return gsap.to(taregt, { duration, x, y, z, ease, overwrite });
+            },
+            rotate(target, z, duration = .3) {
+                gsap.to(target, { duration, z, ease: 'power3.out' });
+            },
+            scale(target, x, y, delay, ease, overwrite = false, duration = .6) {
+                return gsap.to(target, { duration, x, y, delay, ease, overwrite });
             }
         }
+
+        const gridEffect = (cardMesh, { x, y, z }, index) => {
+            if (isLoading) effect.position(cardMesh.position, x, y, z);
+
+            effect.rotate(cardMesh.rotation, 0);
+            effect.scale(cardMesh.scale, 1, 1, .1, 'back.in(2)', true).eventCallback('onUpdate', function() {
+                const progress = this.progress();
+                if (progress > 0.9 && !this.called) {
+                    this.called = true;
+
+                    if (!isLoading) animateCircle(true);
+
+                    effect.position2(cardMesh.position, x, y, z, 'sine.out', true).eventCallback('onComplete', function() {
+                        if (index === 5) {
+                            isClicked = false;
+                            switchModeButton.style.pointerEvents = '';
+                        }
+                    });
+                }
+            });
+        }
+
+        const stackEffect = (cardMesh, index) => {
+            const zIndex = -index / 30;
+
+            if (cardMeshesZindex.length <= 5) cardMeshesZindex.push(zIndex);
+
+            animateCircle(false);
+            effect.position2(cardMesh.position, 0, 0, zIndex, 'power2.inOut').eventCallback('onUpdate', function() {
+                const progress = this.progress();
+                if (progress > 0.7 && !this.called) {
+                    this.called = true;
+
+                    effect.scale(cardMesh.scale, 1.3, 1.3, 0, 'back.out(3)').eventCallback('onComplete', function() {
+                        if (index === 5) {
+                            sortedCardMeshes.forEach((cardMesh, i) => {
+                                if (i > 2) return;
+                                const z = -Math.PI / 25 * i;
+                                effect.rotate(cardMesh.rotation, z);
+                            });
+                
+                            switchModeButton.style.pointerEvents = '';
+                            cardsGallery.classList.remove('stack-mode', 'grid-mode');
+                            cardsGallery.classList.add('stack-mode');
+                        }
+                    });
+                }
+            });
+        }
+
+        sortedCardMeshes.forEach((cardMesh ,i) => {
+            const { x, y, z } = cardMeshesInitInfo[cardMesh.name].position;
+
+            if (type === 'grid') gridEffect(cardMesh, { x, y, z }, i);
+            if (type === 'stack') stackEffect(cardMesh, i);
+        });
     }
 
     // switch 버튼 클릭 핸들러
@@ -710,6 +671,7 @@ export default function main() {
         const hasStackActive = target.classList.contains('stack-active');
         const hasGridActive = target.classList.contains('grid-active');
 
+        target.style.pointerEvents = 'none';
         target.classList.remove('stack-active', 'grid-active');
         document.body.style.cursor = '';
         isClicked = true;
@@ -717,14 +679,12 @@ export default function main() {
         if (hasStackActive) {
             cardType = 'grid';
             target.classList.add('grid-active');
-            animateCircle(true);
             animateCardMeshSort('grid');
         }
 
         if (hasGridActive) {
             cardType = 'stack';
             target.classList.add('stack-active');
-            animateCircle(false);
             animateCardMeshSort('stack');
         }
     }
@@ -735,13 +695,13 @@ export default function main() {
         const hasShowButton = element.classList.contains('show-button');
         const firstMesh = cardMeshes.sort((a, b) => b.position.z - a.position.z)[0];
         const effect = {
-            position: (target, x, z, duration = .5) => {
+            position(target, x, z, duration = .5) {
                 gsap.to(target.position, { duration, x, z, ease: 'sine.out'})
             },
-            rotation: (target, y, z, duration = .5) => {
+            rotate(target, y, z, duration = .5) {
                 gsap.to(target.rotation, { duration, y, z, ease: 'power1.out'});
             },
-            background: (target, scaleX, scaleY = 1.15, duration = .5) => {
+            background(target, scaleX, scaleY = 1.15, duration = .5) {
                 gsap.to(target, { duration, scaleX, scaleY, ease: 'power1.out' });
             }
         }
@@ -750,12 +710,12 @@ export default function main() {
         if (eventType === 'mouseenter') {
             if (hasNextButton) {
                 target = document.querySelector('.next-card .hover-bg');
-                effect.position(firstMesh, -1.2, .3);
-                effect.rotation(firstMesh, -Math.PI / 5, Math.PI / 20);
+                effect.position(firstMesh, -1.2, .4);
+                effect.rotate(firstMesh, -Math.PI / 5, Math.PI / 20);
             } else if (hasShowButton) {
                 target = document.querySelector('.show-me .hover-bg-2');
-                effect.position(firstMesh, 1.2, .3);
-                effect.rotation(firstMesh, Math.PI / 5, -Math.PI / 20);
+                effect.position(firstMesh, 1.2, .4);
+                effect.rotate(firstMesh, Math.PI / 5, -Math.PI / 20);
             }
             
             effect.background(target, .6);
@@ -769,7 +729,7 @@ export default function main() {
             }
 
             effect.position(firstMesh, 0, 0);
-            effect.rotation(firstMesh, 0, 0);
+            effect.rotate(firstMesh, 0, 0);
             effect.background(target, 0);
         }
     }
@@ -790,12 +750,12 @@ export default function main() {
         const hoverBg = document.querySelectorAll('.hover-wraaper .hover-bg');
         const firstCardMesh = cardMeshes.sort((a, b) => b.position.z - a.position.z)[0];
         const excludeFirstMeshes = cardMeshes
-                .sort((a, b) => b.position.z - a.position.z)
-                .filter((v, i) => v !== firstCardMesh);
+            .sort((a, b) => b.position.z - a.position.z)
+            .filter((v, i) => v !== firstCardMesh);
 
         excludeFirstMeshes.forEach((v, i) => {
             const cardMesh = v;
-            const angle = - Math.PI / 25;
+            const angle = - Math.PI / 25 * i;
 
             gsap.to(cardMesh.scale, {
                 duration: .4,
@@ -809,18 +769,18 @@ export default function main() {
                 y: 1.3,
                 ease: 'elastic.out(7, 0.6)',
                 delay: .4
-            })
+            });
             gsap.to(cardMesh.position, {
                 duration: .5,
                 z: cardMeshesZindex[i],
                 ease: 'power2.out',
                 delay: .5
-            })
+            });
 
             if (i < 3) {
                 gsap.to(cardMesh.rotation, {
                     duration: .3, 
-                    z: angle * i,
+                    z: angle,
                     ease: 'power2.out',
                     delay: .5
                 });
@@ -832,7 +792,7 @@ export default function main() {
             scaleX: 1.5,
             scaleY: 1.5,
             ease: 'power1.out',
-            onComplete: function() {
+            onComplete() {
                 gsap.to(hoverBg, {
                     duration: 0,
                     scaleX: 0,
@@ -853,7 +813,7 @@ export default function main() {
             duration: .8,
             y: -Math.PI * 0.8,
             ease: 'power1.out',
-            onComplete: function() {
+            onComplete() {
                 const zIndex = cardMeshesZindex.slice(-1)[0] + -0.03;
 
                 cardsGallery.removeAttribute('inert');
@@ -894,8 +854,7 @@ export default function main() {
     // show 버튼 애니메이션
     const animateShowBg = () => {
         const hoverBg = document.querySelectorAll('.hover-wraaper .hover-bg-2');
-
-        gsap.to(hoverBg, {
+        const animate = gsap.to(hoverBg, {
             duration: .8,
             scaleX: 1.5,
             scaleY: 1.5,
@@ -914,7 +873,7 @@ export default function main() {
     }
 
     // 픽셀 크기를 계산하는 함수
-    const calculatePixelSize = (cardMesh) => {
+    const calculatePixelSize = cardMesh => {
         // Bounding box for the card mesh
         let boundingBox = new THREE.Box3().setFromObject(cardMesh);
         let size = new THREE.Vector3(0,0,0);
@@ -948,16 +907,14 @@ export default function main() {
         closeButton.addEventListener('click', handleCloseButton);
         votingButtons.addEventListener('click', handleVotingButton);
         switchModeButton.addEventListener('click', handleSwitchButton);
-
         nextButton.addEventListener('click', handleNextButton);
         nextButton.addEventListener('mouseenter', handleHoverWrapperAction);
         nextButton.addEventListener('mouseleave', handleHoverWrapperAction);
-
         showButton.addEventListener('click', handleShowButton);
         showButton.addEventListener('mouseenter', handleHoverWrapperAction);
         showButton.addEventListener('mouseleave', handleHoverWrapperAction);
         
-        animateloadding();
+        animateSplash();
     });
 
     animate();
