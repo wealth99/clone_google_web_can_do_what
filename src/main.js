@@ -2,10 +2,25 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { gsap, ScrollToPlugin } from 'gsap/all';
-
 gsap.registerPlugin(ScrollToPlugin);
 
 export default function main() {
+    const header = document.querySelector('header');
+    const footer = document.querySelector('footer');
+    const scrollSpacer = document.querySelector('.cards-gallery-scroll-spacer');
+    const closeButton = document.querySelector('.close-button');
+    const votingButtons = document.querySelector('.voting-buttons');
+    const switchModeButton = document.querySelector('.switch-mode-button');
+    const nextButton = document.querySelector('.next-button');
+    const showButton = document.querySelector('.show-button');
+    const pageSplash = document.querySelector('.page-splash');
+    const splashInner = document.querySelector('.page-splash .inner');
+    const cardsGallery = document.querySelector('.cards-gallery');
+    const pageIntro = document.querySelector('.page-intro');
+    const pageIntroInner = document.querySelector('.page-intro .inner');
+    const switchCircles = document.querySelectorAll('.switch-circle');
+    const hoverBg = document.querySelectorAll('.hover-wraaper .hover-bg');
+    const hoverBg2 = document.querySelectorAll('.hover-wraaper .hover-bg-2');
     const cardMeshes = [];
     const cardMeshesZindex = [];
     const cardMeshesInitInfo = {
@@ -27,13 +42,13 @@ export default function main() {
     let clickCount = 0;
     let mouseMoved;
     let isClicked = false;
+    let isNextClicked = false;
     let isShowClicked = false;
     let enabledMesh;
     let prevScrollY, newScrollY;
     let clickStartX, clickStartY, clickStartTime;
     let cardType = 'grid';
 
-    // Renderer
     const canvas = document.querySelector('#three-canvas');
     const renderer = new THREE.WebGLRenderer({
         canvas,
@@ -84,25 +99,10 @@ export default function main() {
     directionalLight.shadow.bottom = -15;
     directionalLight.shadow.left = -15;
 
-    // // LightHelper
-    // const lightHelper = new THREE.DirectionalLightHelper(directionalLight);
-    // scene.add(lightHelper);
-
-    // // AxesHelper
-    // const axesHelper = new THREE.AxesHelper(3);
-    // scene.add(axesHelper);
-
-    // // GridHelper
-    // const gridHelper = new THREE.GridHelper(5); 
-    // scene.add(gridHelper);
-
-    // // Controls
-    // const controls = new OrbitControls(camera, renderer.domElement);
-
     // Mesh
     const floorShadowMesh = new THREE.Mesh(
         new THREE.PlaneGeometry(10, 10), 
-        new THREE.ShadowMaterial({ opacity: .15 })
+        new THREE.ShadowMaterial({ opacity: 0.15 })
     );
     floorShadowMesh.position.z = -0.05;
     floorShadowMesh.receiveShadow = true;
@@ -162,18 +162,56 @@ export default function main() {
 
         const texture = new THREE.CanvasTexture(canvas);
         texture.colorSpace = THREE.SRGBColorSpace;
-        texture.generateMipmaps = true;
-        texture.minFilter = THREE.LinearMipmapLinearFilter;
-        texture.magFilter = THREE.LinearFilter;
+        // texture.generateMipmaps = true;
+        // texture.minFilter = THREE.LinearMipmapLinearFilter;
+        // texture.magFilter = THREE.LinearFilter;
 
         return texture;
     }
+
+    // 픽셀 크기로 메쉬 크기 계산하기
+    const calcMeshSizeFromPixels = (pxWidth, pxHeight) => {
+        const vFov = (camera.fov * Math.PI) / 180;
+        const height = 2 * Math.tan(vFov / 2) * camera.position.z;
+        const aspect = window.innerWidth / window.innerHeight;
+        const width = height * aspect;
+        const meshWidth = (pxWidth / window.innerWidth) * width;
+        const meshHeight = (pxHeight / window.innerHeight) * height;
+
+        return { meshWidth, meshHeight }
+    }
+
+    // 메쉬 크기로 픽셀 크기 계산하기
+    const calcPixelSizeFromMesh = cardMesh => {
+        let boundingBox = new THREE.Box3().setFromObject(cardMesh);
+        let size = new THREE.Vector3(0,0,0);
+        size = boundingBox.getSize(size);
+
+        const vFov = (camera.fov * Math.PI) / 180;
+        const height = 2 * Math.tan(vFov / 2) * camera.position.z;
+        const aspect = window.innerWidth / window.innerHeight;
+        const width = height * aspect;
+
+        const pixelSizeWidth = window.innerWidth * ((1 / width) * size.x);
+        const pixelSizeHeight = window.innerHeight * ((1 / height) * size.y);
+
+        return { pixelSizeWidth, pixelSizeHeight }
+    };
     
-    const boxGeometry = new RoundedBoxGeometry(1.5, 2.4, .4, 10, 2);
+    // const { meshWidth, meshHeight } = calcMeshSizeFromPixels(400, 640);
+    const boxGeometry = new RoundedBoxGeometry(1.5, 2.4, 0.4, 10, 2);
     const boxMaterial = new THREE.MeshStandardMaterial({ color: 'white' });
+    const setStyleVariablesCardSize = cardMesh => {
+        const { pixelSizeWidth, pixelSizeHeight } = calcPixelSizeFromMesh(cardMesh);
+        
+        document.documentElement.style.setProperty('--cardPixelWidth', `${pixelSizeWidth}px`);
+        document.documentElement.style.setProperty('--cardPixelHeight', `${pixelSizeHeight}px`);
+    }
+
+    // card mesh 만들기
     const createCardMesh = async meshInfo => {
         const { name, position, image, video } = meshInfo;
-        const texture =  await createCanvasTexture(image, video);
+        const texture = await createCanvasTexture(image, video);
         const cardMesh = new THREE.Mesh(
             boxGeometry, [
                 boxMaterial,
@@ -193,10 +231,14 @@ export default function main() {
         cardMeshes.push(cardMesh);
 
         scene.add(cardMesh);
+
+        setStyleVariablesCardSize(cardMesh);
+        if(cardMeshes.length === 1) setScrollSpacer();
     }
 
     Object.values(cardMeshesInitInfo).forEach(createCardMesh);
 
+    // render
     const animate = () => {
         requestAnimationFrame(animate);
         renderer.render(scene, camera);
@@ -212,10 +254,8 @@ export default function main() {
 
     // window 스크롤 핸들러
     const handleWindowScroll = () => {
-        const pageIntroInner = document.querySelector('.page-intro .inner');
-
         if (pageIntroInner.getBoundingClientRect().y >= 0) {
-            newScrollY = window.scrollY * 0.001;
+            newScrollY = window.scrollY * 0.004;
             camera.position.y = - newScrollY;
         }
     }
@@ -224,7 +264,6 @@ export default function main() {
     const handleDocumentClick = event => {
         if (mouseMoved || isClicked || cardType === 'stack') return;
 
-        isClicked = true;
         mouse.x = event.clientX / canvas.clientWidth * 2 - 1;
         mouse.y = -(event.clientY / canvas.clientHeight * 2 - 1);
 
@@ -235,34 +274,31 @@ export default function main() {
 
         if (isIntersect) {
             const object = intersects[0].object;
+
+            isClicked = true;
+            footer.style.opacity = 0;
             animateCardMesh(object);
         }
     }
 
     // card mesh 애니메이션
     const animateCardMesh = object =>  {
-        const pageIntro = document.querySelector('.page-intro');
-        const cardsGallery = document.querySelector('.cards-gallery');
         const { x, y, z } = object.position;
 
-        cardsGallery.classList.add('page-open');
-
         enabledMesh = object;
-        document.body.style.cursor = '';
-
         prevScrollY = window.scrollY;
+        document.body.classList.add('page-open');
+        document.body.style.cursor = '';
         document.body.style.overflow = 'hidden';
 
-        // cardType stack 시에만
         if(cardType === 'stack') {
             const excludeFirstMeshes = cardMeshes
                 .sort((a, b) => b.position.z - a.position.z)
                 .filter((v, i) => i !== 0);
 
-            // 첫번째 mesh 제외 
             for (const excludeFirstMesh of excludeFirstMeshes) {
                 gsap.to(excludeFirstMesh.rotation, {
-                    duration: .5,
+                    duration: 0.5,
                     x: 0,
                     y: 0,
                     z: 0,
@@ -270,6 +306,12 @@ export default function main() {
                     ease: 'power1.out',
                 });
             }
+
+            gsap.to(object.rotation, {
+                duration: 0.2,
+                y: 0,
+                ease: 'sine.out',
+            });
 
             gsap.to(object.position, {
                 duration: 1,
@@ -290,7 +332,7 @@ export default function main() {
             ease: 'power1.out',
         }); 
         gsap.to(object.rotation, { 
-            duration: .2, 
+            duration: 0.2,
             z: 0,
             ease: 'power1.out' 
         });
@@ -308,7 +350,7 @@ export default function main() {
                 } 
             }
         });
-        if (cardType !== 'stack') {
+        if (cardType === 'grid') {
             if (object.name === 'card-2' || object.name === 'card-5') {
                 gsap.to(object.position, {
                     duration: .8,
@@ -334,7 +376,7 @@ export default function main() {
             duration: 1, 
             y: 0, 
             z: 4.1, 
-            delay: .2, 
+            delay: 0.2, 
             ease: 'power1.out', 
             onComplete() {
                 gsap.to(pageIntro, { duration: 0, opacity: 1, display: 'block' });
@@ -342,6 +384,9 @@ export default function main() {
 
                 window.scrollTo(0, 0);
                 document.body.style.overflow = '';
+                footer.style.opacity = 1;
+                footer.style.position = 'absolute';
+                footer.style.top = `${document.body.clientHeight}px`;
             }
         });
     }
@@ -352,10 +397,10 @@ export default function main() {
 
         if (cardType === 'grid') {
             for (const mesh of cardMeshes) {
-                const position = object === mesh ? .1 : 0;
+                const position = object === mesh ? 0.1 : 0;
     
                 gsap.to(mesh.position, { 
-                    duration: .5,
+                    duration: 0.5,
                     z: position, 
                     ease: 'power1.out'
                 });
@@ -366,7 +411,7 @@ export default function main() {
     // document 마우스무브 핸들러
     const handleDocumentMousemove = e => {
         if (isClicked || cardType === 'stack') return;
-        
+
         mouse.x = e.clientX / canvas.clientWidth * 2 - 1;
         mouse.y = -(e.clientY / canvas.clientHeight * 2 - 1);
 
@@ -405,10 +450,7 @@ export default function main() {
     // mesh 리셋 애니메이션
     const animateResetMesh = (mesh, position) => {
         const { x, y, z } = position;
-        const hoverBg = document.querySelectorAll('.hover-wraaper .hover-bg-2');
-        const cardsGallery = document.querySelector('.cards-gallery');
-        const pageIntro = document.querySelector('.page-intro');
-
+        
         gsap.to(pageIntro, { duration: 0, opacity: 0, display: 'none' });
         gsap.to(canvas, { duration: 0, opacity: 1, display: 'block' });
         
@@ -436,7 +478,7 @@ export default function main() {
                 const angle = - Math.PI / 25 * i;
 
                 gsap.to(cardMesh.rotation, {
-                    duration: .3,
+                    duration: 0.3,
                     z: angle,
                     ease: 'power3.out'
                 });
@@ -445,7 +487,7 @@ export default function main() {
             }
         }
 
-        gsap.to(hoverBg, {
+        gsap.to(hoverBg2, {
             duration: .8,
             scaleX: 0,
             scaleY: 1.15,
@@ -473,12 +515,13 @@ export default function main() {
         gsap.to(camera.position, { 
             duration: 1, 
             z: 3.3, 
-            delay: .3, 
+            delay: 0.3, 
             ease: 'power2.out', 
             onComplete() {
                 isClicked = false;
                 isShowClicked = false;
-                cardsGallery.classList.remove('page-open');
+                document.body.classList.remove('page-open');
+                footer.setAttribute('style', '');
             }
         });
     }
@@ -496,7 +539,7 @@ export default function main() {
 
         if (window.scrollY > 0) {
             gsap.to(window, { 
-                duration: .5,
+                duration: 0.5,
                 scrollTo: { y: 0 },
                 ease: 'sine.out', 
                 onComplete() {
@@ -528,17 +571,15 @@ export default function main() {
 
     // loadding splash 애니메이션
     const animateSplash = () => {
-        const pageSplash = document.querySelector('.page-splash');
-        const inner = document.querySelector('.page-splash .inner');
         const tl = gsap.timeline();
 
-        tl.to(inner, { 
-                duration: .5,
+        tl.to(splashInner, { 
+                duration: 0.5,
                 rotation: -45,
                 ease: 'power3.out' 
             })
-        .to(inner, { 
-                duration: .5,
+        .to(splashInner, { 
+                duration: 0.5,
                 rotation: 90,
                 opacity: 0,
                 scale: 0.5, 
@@ -555,17 +596,14 @@ export default function main() {
 
     // switch 버튼 애니메이션
     const animateCircle = active => {
-        const cardsGallery = document.querySelector('.cards-gallery');
-        const switchCircles = document.querySelectorAll('.switch-circle');
-
         if (active) {
             cardsGallery.classList.remove('stack-mode', 'grid-mode');
             cardsGallery.classList.add('grid-mode');
             
             gsap.fromTo(switchCircles,
-                { scale: .12 },
+                { scale: 0.12 },
                 {
-                    duration: .8,
+                    duration: 0.8,
                     scale: 14,
                     ease: 'cubic-bezier(0.475, 0.175, 0.515, 0.805)', 
                     stagger: { each: .08, from: 'start' },
@@ -575,8 +613,8 @@ export default function main() {
             gsap.fromTo(switchCircles,
                 { scale: 14 },
                 {
-                    duration: .5,
-                    scale: .12,
+                    duration: 0.5,
+                    scale: 0.12,
                     ease: 'cubic-bezier(0.185, 0.390, 0.745, 0.535)', 
                     stagger: { each: .08, from: 'end' },
                 })
@@ -586,23 +624,21 @@ export default function main() {
 
     // card mesh grid/stack 정렬 애니메이션
     const animateCardMeshSort = (type, isLoading = false) => {
-        const cardsGallery = document.querySelector('.cards-gallery');
-        const switchModeButton = document.querySelector('.switch-mode-button');
         const sortedCardMeshes = cardMeshes.sort((a, b) => a.name.localeCompare(b.name));
         const effect = {
-            position(target, x, y, z, duration = .5) {
+            position(target, x, y, z, duration = 0.5) {
                 gsap.fromTo(target, 
                     { x: 0, y: 0, z: 0 }, 
                     { duration, x, y, z, ease: 'power1.out', overwrite: true }
                 )
             },
-            position2(taregt, x, y, z, ease, overwrite = false, duration = .5) {
+            position2(taregt, x, y, z, ease, overwrite = false, duration = 0.5) {
                 return gsap.to(taregt, { duration, x, y, z, ease, overwrite });
             },
-            rotate(target, z, duration = .3) {
+            rotate(target, z, duration = 0.3) {
                 gsap.to(target, { duration, z, ease: 'power3.out' });
             },
-            scale(target, x, y, delay, ease, overwrite = false, duration = .6) {
+            scale(target, x, y, delay, ease, overwrite = false, duration = 0.6) {
                 return gsap.to(target, { duration, x, y, delay, ease, overwrite });
             }
         }
@@ -611,7 +647,7 @@ export default function main() {
             if (isLoading) effect.position(cardMesh.position, x, y, z);
 
             effect.rotate(cardMesh.rotation, 0);
-            effect.scale(cardMesh.scale, 1, 1, .1, 'back.in(2)', true).eventCallback('onUpdate', function() {
+            effect.scale(cardMesh.scale, 1, 1, 0.1, 'back.in(2)', true).eventCallback('onUpdate', function() {
                 const progress = this.progress();
                 if (progress > 0.9 && !this.called) {
                     this.called = true;
@@ -620,7 +656,6 @@ export default function main() {
 
                     effect.position2(cardMesh.position, x, y, z, 'sine.out', true).eventCallback('onComplete', function() {
                         if (index === 5) {
-                            isClicked = false;
                             switchModeButton.style.pointerEvents = '';
                         }
                     });
@@ -646,6 +681,8 @@ export default function main() {
                                 const z = -Math.PI / 25 * i;
                                 effect.rotate(cardMesh.rotation, z);
                             });
+
+                            setStyleVariablesCardSize(cardMesh);
                 
                             switchModeButton.style.pointerEvents = '';
                             cardsGallery.classList.remove('stack-mode', 'grid-mode');
@@ -674,8 +711,7 @@ export default function main() {
         target.style.pointerEvents = 'none';
         target.classList.remove('stack-active', 'grid-active');
         document.body.style.cursor = '';
-        isClicked = true;
-
+ 
         if (hasStackActive) {
             cardType = 'grid';
             target.classList.add('grid-active');
@@ -695,48 +731,48 @@ export default function main() {
         const hasShowButton = element.classList.contains('show-button');
         const firstMesh = cardMeshes.sort((a, b) => b.position.z - a.position.z)[0];
         const effect = {
-            position(target, x, z, duration = .5) {
+            position(target, x, z, duration = 0.5) {
                 gsap.to(target.position, { duration, x, z, ease: 'sine.out'})
             },
-            rotate(target, y, z, duration = .5) {
+            rotate(target, y, z, duration = 0.5) {
                 gsap.to(target.rotation, { duration, y, z, ease: 'power1.out'});
             },
-            background(target, scaleX, scaleY = 1.15, duration = .5) {
+            background(target, scaleX, scaleY = 1.15, duration = 0.5) {
                 gsap.to(target, { duration, scaleX, scaleY, ease: 'power1.out' });
             }
         }
-        let target;
+        let targetHover;
 
         if (eventType === 'mouseenter') {
             if (hasNextButton) {
-                target = document.querySelector('.next-card .hover-bg');
-                effect.position(firstMesh, -1.2, .4);
+                targetHover = document.querySelector('.next-card .hover-bg');
+                effect.position(firstMesh, -1.2, 0.4);
                 effect.rotate(firstMesh, -Math.PI / 5, Math.PI / 20);
             } else if (hasShowButton) {
-                target = document.querySelector('.show-me .hover-bg-2');
-                effect.position(firstMesh, 1.2, .4);
+                targetHover = document.querySelector('.show-me .hover-bg-2');
+                effect.position(firstMesh, 1.2, 0.4);
                 effect.rotate(firstMesh, Math.PI / 5, -Math.PI / 20);
             }
             
-            effect.background(target, .6);
+            effect.background(targetHover, 0.6);
         }
 
         if (eventType === 'mouseleave') {
             if (hasNextButton) {
-                target = document.querySelector('.next-card .hover-bg');
+                targetHover = document.querySelector('.next-card .hover-bg');
             } else if (hasShowButton) {
-                target = document.querySelector('.show-me .hover-bg-2');
+                targetHover = document.querySelector('.show-me .hover-bg-2');
             }
 
             effect.position(firstMesh, 0, 0);
             effect.rotate(firstMesh, 0, 0);
-            effect.background(target, 0);
+            effect.background(targetHover, 0);
         }
     }
 
     // hover wrapper 마우스 액션 핸들러
     const handleHoverWrapperAction = event => {
-        if (cardType === 'grid' || isShowClicked) return;
+        if (cardType === 'grid' || isShowClicked || isNextClicked) return;
         
         const eventType = event.type;
         const element = event.currentTarget;
@@ -746,8 +782,6 @@ export default function main() {
 
     // next 버튼 애니메이션
     const animateNextCard = () => {
-        const cardsGallery = document.querySelector('.cards-gallery');
-        const hoverBg = document.querySelectorAll('.hover-wraaper .hover-bg');
         const firstCardMesh = cardMeshes.sort((a, b) => b.position.z - a.position.z)[0];
         const excludeFirstMeshes = cardMeshes
             .sort((a, b) => b.position.z - a.position.z)
@@ -758,17 +792,17 @@ export default function main() {
             const angle = - Math.PI / 25 * i;
 
             gsap.to(cardMesh.scale, {
-                duration: .4,
+                duration: 0.4,
                 x: '+=.05',
                 y: '+=.05',
                 ease: 'power1.out'
             });
             gsap.to(cardMesh.scale, {
-                duration: .8,
+                duration: 0.8,
                 x: 1.3,
                 y: 1.3,
                 ease: 'elastic.out(7, 0.6)',
-                delay: .4
+                delay: 0.4
             });
             gsap.to(cardMesh.position, {
                 duration: .5,
@@ -788,7 +822,7 @@ export default function main() {
         });
 
         gsap.to(hoverBg, {
-            duration: .8,
+            duration: .5,
             scaleX: 1.5,
             scaleY: 1.5,
             ease: 'power1.out',
@@ -805,20 +839,20 @@ export default function main() {
         });
         
         gsap.to(firstCardMesh.position, {
-            duration: .8,
+            duration: 0.8,
             x: -7,
             ease: 'power1.out'
         });
         gsap.to(firstCardMesh.rotation, {
-            duration: .8,
+            duration: 0.8,
             y: -Math.PI * 0.8,
             ease: 'power1.out',
             onComplete() {
                 const zIndex = cardMeshesZindex.slice(-1)[0] + -0.03;
 
+                isNextClicked = false;
                 cardsGallery.removeAttribute('inert');
                 cardsGallery.style.pointerEvents = '';
-                isShowClicked = false;
 
                 gsap.to(firstCardMesh.position, {
                     duration: 0,
@@ -836,60 +870,44 @@ export default function main() {
 
     // next 버튼 클릭 핸들러
     const handleNextButton = () => {
-        const cardsGallery = document.querySelector('.cards-gallery');
+        if(isNextClicked) return; 
 
+        isNextClicked = true;
         cardsGallery.setAttribute('inert', '');
         cardsGallery.style.pointerEvents = 'none';
-        isShowClicked = true;
 
         if(clickCount === 5) clickCount = -1;
 
         clickCount += 1;
         document.body.backgroundColor = bodyBgColors[clickCount][1];
-        cardsGallery.style.backgroundColor = bodyBgColors[clickCount][1];
         
         animateNextCard();
     }
 
     // show 버튼 애니메이션
     const animateShowBg = () => {
-        const hoverBg = document.querySelectorAll('.hover-wraaper .hover-bg-2');
-        const animate = gsap.to(hoverBg, {
-            duration: .8,
-            scaleX: 1.5,
-            scaleY: 1.5,
-            ease: 'power1.out'
-        });
+        gsap.to(hoverBg2, { duration: 0.8, scaleX: 1.5, scaleY: 1.5, ease: 'power1.out' });
     }
 
     // show 버튼 클릭 핸들러
     const handleShowButton = () => {
+        if(isNextClicked) return; 
         const firstCardMesh = cardMeshes.sort((a, b) => b.position.z - a.position.z)[0];
 
         isShowClicked = true;
 
-        animateCardMesh(firstCardMesh);
         animateShowBg();
+        animateCardMesh(firstCardMesh);
     }
 
-    // 픽셀 크기를 계산하는 함수
-    const calculatePixelSize = cardMesh => {
-        // Bounding box for the card mesh
-        let boundingBox = new THREE.Box3().setFromObject(cardMesh);
-        let size = new THREE.Vector3(0,0,0);
-        size = boundingBox.getSize(size);
-
-        // Camera settings and aspect ratio
-        const vFov = (camera.fov * Math.PI) / 180;
-        const height = 2 * Math.tan(vFov / 2) * camera.position.z;
-        const aspect = window.innerWidth / window.innerHeight;
-        const width = height * aspect;
-
-        // Pixel size calculation
-        const pixelSizeWidth = window.innerWidth * ((1 / width) * size.x);
-        const pixelSizeHeight = window.innerHeight * ((1 / height) * size.y);
-        console.log('Pixel Size:', pixelSizeWidth, pixelSizeHeight);
-    };
+    // cards gallery 스크롤 값 설정
+    const setScrollSpacer = () => {
+        const headerStyle = window.getComputedStyle(header);
+        const footerStyle = window.getComputedStyle(footer);
+        const { pixelSizeHeight } = calcPixelSizeFromMesh(cardMeshes[0]);
+        
+        scrollSpacer.style.height = `${ pixelSizeHeight * 2 + parseInt(headerStyle.height, 10) + parseInt(footerStyle.height, 10)}px`;
+    }
 
     window.addEventListener('scroll', handleWindowScroll);
     window.addEventListener('resize', handleWindowResize);
@@ -897,27 +915,17 @@ export default function main() {
     document.addEventListener('mousemove', handleDocumentMousemove);
     document.addEventListener('mousedown', handleDocumentMousedown);
     document.addEventListener('mouseup', handleDocumentMouseup);
-    document.addEventListener('DOMContentLoaded', () => {
-        const closeButton = document.querySelector('.close-button');
-        const votingButtons = document.querySelector('.voting-buttons');
-        const switchModeButton = document.querySelector('.switch-mode-button');
-        const nextButton = document.querySelector('.next-button');
-        const showButton = document.querySelector('.show-button');
+    closeButton.addEventListener('click', handleCloseButton);
+    votingButtons.addEventListener('click', handleVotingButton);
+    switchModeButton.addEventListener('click', handleSwitchButton);
+    nextButton.addEventListener('click', handleNextButton);
+    nextButton.addEventListener('mouseenter', handleHoverWrapperAction);
+    nextButton.addEventListener('mouseleave', handleHoverWrapperAction);
+    showButton.addEventListener('click', handleShowButton);
+    showButton.addEventListener('mouseenter', handleHoverWrapperAction);
+    showButton.addEventListener('mouseleave', handleHoverWrapperAction);
 
-        closeButton.addEventListener('click', handleCloseButton);
-        votingButtons.addEventListener('click', handleVotingButton);
-        switchModeButton.addEventListener('click', handleSwitchButton);
-        nextButton.addEventListener('click', handleNextButton);
-        nextButton.addEventListener('mouseenter', handleHoverWrapperAction);
-        nextButton.addEventListener('mouseleave', handleHoverWrapperAction);
-        showButton.addEventListener('click', handleShowButton);
-        showButton.addEventListener('mouseenter', handleHoverWrapperAction);
-        showButton.addEventListener('mouseleave', handleHoverWrapperAction);
-        
-        animateSplash();
-    });
-
+    animateSplash();
     animate();
 }
-
 main();
