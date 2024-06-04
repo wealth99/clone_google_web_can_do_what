@@ -472,7 +472,6 @@ export default function main() {
         const { x, y, z } = object.position;
 
         enabledMesh = object;
-
         document.body.classList.add('page-open');
         document.body.style.cursor = '';
         document.body.style.overflow = 'hidden';
@@ -510,6 +509,29 @@ export default function main() {
                 ease: 'sine.out',
             });
         }
+        
+        if (cardType === 'grid') {
+            if (object.name === 'card-2' || object.name === 'card-5') {
+                gsap.to(object.position, {
+                    duration: .8,
+                    x: 0,
+                    y: -.52,
+                    z: 3,
+                    ease: 'sine.out'
+                });
+            } else {
+                gsap.to(object.position, {
+                    duration: 1,
+                    keyframes: {
+                        '0%':   { x, y, z, },
+                        '50%':  { x: 1, y: 0, z: 1.5 },
+                        '100%': { x: 0, y: -0.52, z: 3 },
+                        easeEach: 'sine.out'
+                    },
+                    ease: 'sine.out',
+                });
+            }
+        }
 
         animateShowBg();
         gsap.to(object.scale, { 
@@ -538,28 +560,7 @@ export default function main() {
                 } 
             }
         });
-        if (cardType === 'grid') {
-            if (object.name === 'card-2' || object.name === 'card-5') {
-                gsap.to(object.position, {
-                    duration: .8,
-                    x: 0,
-                    y: -.52,
-                    z: 3,
-                    ease: 'sine.out'
-                });
-            } else {
-                gsap.to(object.position, {
-                    duration: 1,
-                    keyframes: {
-                        '0%':   { x, y, z, },
-                        '50%':  { x: 1, y: 0, z: 1.5 },
-                        '100%': { x: 0, y: -0.52, z: 3 },
-                        easeEach: 'sine.out'
-                    },
-                    ease: 'sine.out',
-                });
-            }
-        }
+
         gsap.to(camera.position, { 
             duration: 1, 
             y: 0, 
@@ -851,6 +852,7 @@ export default function main() {
 
                     effect.position2(cardMesh.position, x, y, z, 'sine.out', true).eventCallback('onComplete', function() {
                         if (index === 5) {
+                            setScrollSpacer();
                             isSwitchClicked = false;
                         }
                     });
@@ -877,6 +879,11 @@ export default function main() {
                                 effect.rotate(cardMesh.rotation, z);
                             });
 
+                            scrollSpacer.style.height = '';
+                            footer.style.position = 'fixed';
+                            footer.style.left = 0;
+                            footer.style.bottom = 0;
+
                             isSwitchClicked = false;
                             cardsGallery.classList.remove('stack-mode', 'grid-mode');
                             cardsGallery.classList.add('stack-mode');
@@ -891,8 +898,14 @@ export default function main() {
         sortedCardMeshes.forEach((cardMesh ,i) => {
             const { x, y, z } = cardMeshesInitInfo[cardMesh.name].position;
 
-            if (type === 'grid') gridEffect(cardMesh, { x, y, z }, i);
-            if (type === 'stack') stackEffect(cardMesh, i);
+            if (type === 'grid') {
+                footer.setAttribute('style', '');
+                gridEffect(cardMesh, { x, y, z }, i);
+            }
+
+            if (type === 'stack') {
+                stackEffect(cardMesh, i);
+            }
         });
     }
 
@@ -1094,13 +1107,13 @@ export default function main() {
 
     // next 버튼 클릭 핸들러
     const handleNextButton = () => {
-        if(isNextClicked) return; 
+        if (isNextClicked) return; 
 
         isNextClicked = true;
         cardsGallery.setAttribute('inert', '');
         cardsGallery.style.pointerEvents = 'none';
 
-        if(clickCount === 5) clickCount = -1;
+        if (clickCount === 5) clickCount = -1;
 
         clickCount += 1;
         document.body.backgroundColor = bodyBgColors[clickCount][1];
@@ -1110,7 +1123,12 @@ export default function main() {
 
     // show 버튼 애니메이션
     const animateShowBg = () => {
-        gsap.to(hoverBg2, { duration: 0.8, scaleX: 1.5, scaleY: 1.5, ease: 'power1.out' });
+        gsap.to(hoverBg2, { 
+            duration: 0.8, 
+            scaleX: 1.5, 
+            scaleY: 1.5, 
+            ease: 'power1.out'
+        });
     }
 
     // show 버튼 클릭 핸들러
