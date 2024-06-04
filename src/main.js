@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { gsap, ScrollToPlugin } from 'gsap/all';
 gsap.registerPlugin(ScrollToPlugin);
 
@@ -44,6 +43,7 @@ export default function main() {
     let isClicked = false;
     let isNextClicked = false;
     let isShowClicked = false;
+    let isSwitchClicked = false;
     let enabledMesh;
     let prevScrollY, newScrollY;
     let clickStartX, clickStartY, clickStartTime;
@@ -82,27 +82,44 @@ export default function main() {
     const ambientLight = new THREE.AmbientLight('white', 1);
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight('white', 2);
-    directionalLight.position.x = -1;
-    directionalLight.position.y = 2;
-    directionalLight.position.z = 3;
-    scene.add(directionalLight);
+    const dirLight = new THREE.DirectionalLight('white', 2);
+    dirLight.position.set(-1, 3, 3);
+    dirLight.target.position.set(0, 0, 0);
+    dirLight.target.updateMatrixWorld();
+    scene.add(dirLight);
 
-    directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
-    directionalLight.shadow.camera.near = 1;
-    directionalLight.shadow.camera.far = 75;
-    directionalLight.shadow.radius = 7;
-    directionalLight.shadow.top = 15;
-    directionalLight.shadow.right = 15;
-    directionalLight.shadow.bottom = -15;
-    directionalLight.shadow.left = -15;
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.camera.near = 1;
+    dirLight.shadow.camera.far = 75;
+    dirLight.shadow.radius = 8;
+    dirLight.shadow.top = 15;
+    dirLight.shadow.right = 15;
+    dirLight.shadow.bottom = -15;
+    dirLight.shadow.left = -15;
+    dirLight.shadow.bias = -0.001; // 그림자 경계의 어긋남 방지
+    dirLight.shadow.normalBias = 0.001; // 표면의 미세한 디테일 고려
+
+    // // LightHelper
+    // const lightHelper = new THREE.DirectionalLightHelper(dirLight);
+    // scene.add(lightHelper);
+
+    // // AxesHelper
+    // const axesHelper = new THREE.AxesHelper(3);
+    // scene.add(axesHelper);
+
+    // // GridHelper
+    // const gridHelper = new THREE.GridHelper(5); 
+    // scene.add(gridHelper);
+
+    // // Controls
+    // const controls = new OrbitControls(camera, renderer.domElement);
 
     // Mesh
     const floorShadowMesh = new THREE.Mesh(
         new THREE.PlaneGeometry(10, 10), 
-        new THREE.ShadowMaterial({ opacity: 0.1 })
+        new THREE.ShadowMaterial({ opacity: 0.15 })
     );
     floorShadowMesh.position.z = -0.05;
     floorShadowMesh.receiveShadow = true;
@@ -197,7 +214,6 @@ export default function main() {
 
     // non indexed BufferGeometry
     const RoundEdgedBoxFlat = (w, h, t, r, s) => { // width, height, thick, radius corner, smoothness
-        
         // helper const's and let's
         const wi = w / 2 - r;		// inner width, half
         const hi = h / 2 - r;		// inner height, half 
@@ -383,6 +399,7 @@ export default function main() {
         cardMesh.rotation.reorder('YXZ');
         cardMesh.scale.z = 0.1;
         cardMesh.castShadow = true;
+        cardMesh.receiveShadow = true;
         cardMeshes.push(cardMesh);
 
         scene.add(cardMesh);
@@ -417,7 +434,9 @@ export default function main() {
 
     // documnet 클릭 핸들러
     const handleDocumentClick = event => {
-        if (mouseMoved || isClicked || cardType === 'stack') return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (mouseMoved || isClicked || cardType === 'stack' || isSwitchClicked) return;
 
         mouse.x = event.clientX / canvas.clientWidth * 2 - 1;
         mouse.y = -(event.clientY / canvas.clientHeight * 2 - 1);
@@ -431,8 +450,20 @@ export default function main() {
             const object = intersects[0].object;
 
             isClicked = true;
-            footer.style.opacity = 0;
-            animateCardMesh(object);
+            prevScrollY = window.scrollY;
+
+            if (window.scrollY > 0) {
+                gsap.to(window, { 
+                    duration: 0.4,
+                    scrollTo: { y: 0 },
+                    ease: 'power2.out', 
+                    onComplete() {
+                        animateCardMesh(object);
+                    }
+                });
+            } else {
+                animateCardMesh(object);
+            }
         }
     }
 
@@ -441,10 +472,11 @@ export default function main() {
         const { x, y, z } = object.position;
 
         enabledMesh = object;
-        prevScrollY = window.scrollY;
+
         document.body.classList.add('page-open');
         document.body.style.cursor = '';
         document.body.style.overflow = 'hidden';
+        footer.style.opacity = 0;
 
         if(cardType === 'stack') {
             const excludeFirstMeshes = cardMeshes
@@ -669,6 +701,12 @@ export default function main() {
                 } 
             }
         });
+        gsap.to(window, {
+            duration: 1,
+            scrollTo: { y: prevScrollY },
+            delay: 0.3, 
+            ease: 'power2.out'
+        })
         gsap.to(camera.position, { 
             duration: 1, 
             z: 3.3, 
@@ -813,7 +851,7 @@ export default function main() {
 
                     effect.position2(cardMesh.position, x, y, z, 'sine.out', true).eventCallback('onComplete', function() {
                         if (index === 5) {
-                            switchModeButton.style.pointerEvents = '';
+                            isSwitchClicked = false;
                         }
                     });
                 }
@@ -839,11 +877,11 @@ export default function main() {
                                 effect.rotate(cardMesh.rotation, z);
                             });
 
-                            setStyleVariablesCardSize(cardMesh);
-                
-                            switchModeButton.style.pointerEvents = '';
+                            isSwitchClicked = false;
                             cardsGallery.classList.remove('stack-mode', 'grid-mode');
                             cardsGallery.classList.add('stack-mode');
+
+                            setStyleVariablesCardSize(cardMesh);
                         }
                     });
                 }
@@ -860,25 +898,43 @@ export default function main() {
 
     // switch 버튼 클릭 핸들러
     const handleSwitchButton = event => {
+        if(isSwitchClicked) return;
+
+        event.preventDefault();
         event.stopPropagation();
         const target = event.currentTarget;
         const hasStackActive = target.classList.contains('stack-active');
         const hasGridActive = target.classList.contains('grid-active');
+        const action = () => {
+            target.classList.remove('stack-active', 'grid-active');
+            document.body.style.cursor = '';
 
-        target.style.pointerEvents = 'none';
-        target.classList.remove('stack-active', 'grid-active');
-        document.body.style.cursor = '';
- 
-        if (hasStackActive) {
-            cardType = 'grid';
-            target.classList.add('grid-active');
-            animateCardMeshSort('grid');
+            if (hasStackActive) {
+                cardType = 'grid';
+                target.classList.add('grid-active');
+                animateCardMeshSort('grid');
+            }
+
+            if (hasGridActive) {
+                cardType = 'stack';
+                target.classList.add('stack-active');
+                animateCardMeshSort('stack');
+            }
         }
 
-        if (hasGridActive) {
-            cardType = 'stack';
-            target.classList.add('stack-active');
-            animateCardMeshSort('stack');
+        isSwitchClicked = true;
+
+        if (window.scrollY > 0) {
+            gsap.to(window, { 
+                duration: 0.4,
+                scrollTo: { y: 0 },
+                ease: 'power2.out', 
+                onComplete() {
+                    action();
+                }
+            });
+        } else {
+            action();
         }
     }
 
@@ -902,10 +958,17 @@ export default function main() {
 
         if (eventType === 'mouseenter') {
             if (hasNextButton) {
+                dirLight.position.set(-1, 3, 3);
+                dirLight.updateMatrixWorld();
+
                 targetHover = document.querySelector('.next-card .hover-bg');
                 effect.position(firstMesh, -1.2, 0.4);
                 effect.rotate(firstMesh, -Math.PI / 5, Math.PI / 20);
             } else if (hasShowButton) {
+                dirLight.position.set(1, 3, 3);
+                dirLight.target.position.set(0, 0, 0);
+                dirLight.updateMatrixWorld();
+
                 targetHover = document.querySelector('.show-me .hover-bg-2');
                 effect.position(firstMesh, 1.2, 0.4);
                 effect.rotate(firstMesh, Math.PI / 5, -Math.PI / 20);
@@ -915,6 +978,9 @@ export default function main() {
         }
 
         if (eventType === 'mouseleave') {
+            dirLight.position.set(-1, 3, 3);
+            dirLight.updateMatrixWorld();
+            
             if (hasNextButton) {
                 targetHover = document.querySelector('.next-card .hover-bg');
             } else if (hasShowButton) {
@@ -998,7 +1064,8 @@ export default function main() {
         gsap.to(firstCardMesh.position, {
             duration: 0.8,
             x: -7,
-            ease: 'power1.out'
+            z: 3,
+            ease: 'sine.out'
         });
         gsap.to(firstCardMesh.rotation, {
             duration: 0.8,
@@ -1063,7 +1130,11 @@ export default function main() {
         const footerStyle = window.getComputedStyle(footer);
         const { pixelSizeHeight } = calcPixelSizeFromMesh(cardMeshes[0]);
         
-        scrollSpacer.style.height = `${ pixelSizeHeight * 2 + parseInt(headerStyle.height, 10) + parseInt(footerStyle.height, 10)}px`;
+        scrollSpacer.style.height = `${ 
+            pixelSizeHeight * 2 
+            + parseInt(headerStyle.height, 10) 
+            + parseInt(footerStyle.height, 10)
+        }px`;
     }
 
     window.addEventListener('scroll', handleWindowScroll);
