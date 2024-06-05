@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { gsap, ScrollToPlugin } from 'gsap/all';
 gsap.registerPlugin(ScrollToPlugin);
 
@@ -82,7 +81,7 @@ export default function main() {
     const ambientLight = new THREE.AmbientLight('white', 1);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight('white', 2);
+    const dirLight = new THREE.DirectionalLight('white', 2.5);
     dirLight.position.set(-1, 3, 3);
     dirLight.target.position.set(0, 0, 0);
     dirLight.target.updateMatrixWorld();
@@ -100,21 +99,6 @@ export default function main() {
     dirLight.shadow.left = -15;
     dirLight.shadow.bias = -0.001; // 그림자 경계의 어긋남 방지
     dirLight.shadow.normalBias = 0.001; // 표면의 미세한 디테일 고려
-
-    // // LightHelper
-    // const lightHelper = new THREE.DirectionalLightHelper(dirLight);
-    // scene.add(lightHelper);
-
-    // // AxesHelper
-    // const axesHelper = new THREE.AxesHelper(3);
-    // scene.add(axesHelper);
-
-    // // GridHelper
-    // const gridHelper = new THREE.GridHelper(5); 
-    // scene.add(gridHelper);
-
-    // // Controls
-    // const controls = new OrbitControls(camera, renderer.domElement);
 
     // Mesh
     const floorShadowMesh = new THREE.Mesh(
@@ -147,21 +131,15 @@ export default function main() {
             video.loop = true;
             video.muted = true;
             video.autoplay = true;
+            video.crossOrigin = 'anonymous';
             let videoHeight;
 
-            const renderFrame = () => {
+            video.addEventListener('canplay', () => {
                 videoHeight = (400 / video.videoWidth) * video.videoHeight;
                 context.drawImage(video, 0, 250, 400, videoHeight);
 
-                if (!video.paused && !video.ended) {
-                    video.requestVideoFrameCallback(renderFrame);
-                } else {
-                    video.remove();
-                    resolve();
-                }
-            };
-
-            video.requestVideoFrameCallback(renderFrame);
+                resolve({ video, videoHeight });
+            }, false);
         });
     }
 
@@ -169,18 +147,27 @@ export default function main() {
     const createCanvasTexture = async (imagePath, videoPath) => {
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
+        let video, videoHeight
+
         canvas.width = 400;
         canvas.height = 650;
         context.fillStyle = 'white';
         context.fillRect(0, 0, canvas.width, canvas.height);
 
         await loadImage(context, imagePath);
-        if (videoPath) await loadVideo(context, videoPath);
+        if (videoPath) {
+            await loadVideo(context, videoPath).then(result => {
+                video = result.video;
+                videoHeight = result.videoHeight;
+            });
+        }
 
         const texture = new THREE.CanvasTexture(canvas);
         texture.colorSpace = THREE.SRGBColorSpace;
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
 
-        return texture;
+        return { texture, video, videoHeight, canvas, context }
     }
 
     // 픽셀 크기로 메쉬 크기 계산하기
@@ -370,7 +357,6 @@ export default function main() {
         return geometry;
     }
     
-    // const { meshWidth, meshHeight } = calcMeshSizeFromPixels(400, 640);
     const boxGeometry = RoundEdgedBoxFlat(1.5, 2.4, 0.2, 0.15, 9);
     boxGeometry.computeVertexNormals();
     const boxMaterial = new THREE.MeshBasicMaterial( { color: '#ebebeb', side: THREE.DoubleSide } );
@@ -385,7 +371,8 @@ export default function main() {
     // card mesh 만들기
     const createCardMesh = async meshInfo => {
         const { name, position, image, video } = meshInfo;
-        const texture = await createCanvasTexture(image, video);
+        const { texture, video: videoElement, videoHeight, context, canvas } = await createCanvasTexture(image, video);
+
         const cardMesh = new THREE.Mesh(
             boxGeometry, [
                 new THREE.MeshStandardMaterial({ map: texture, side: THREE.DoubleSide  }), 
@@ -406,6 +393,19 @@ export default function main() {
 
         setStyleVariablesCardSize(cardMesh);
         if(cardMeshes.length === 1) setScrollSpacer();
+
+        // if (videoElement) {
+        //     const renderFrame = () => {
+        //         context.drawImage(videoElement, 0, 250, 400, videoHeight);
+        //         texture.needsUpdate = true;
+
+        //         if (!videoElement.paused && !videoElement.ended) {
+        //             requestAnimationFrame(renderFrame);
+        //         }
+        //     }
+
+        //     renderFrame();
+        // }
     }
 
     Object.values(cardMeshesInitInfo).forEach(createCardMesh);
@@ -436,6 +436,7 @@ export default function main() {
     const handleDocumentClick = event => {
         event.preventDefault();
         event.stopPropagation();
+
         if (mouseMoved || isClicked || cardType === 'stack' || isSwitchClicked) return;
 
         mouse.x = event.clientX / canvas.clientWidth * 2 - 1;
@@ -475,7 +476,8 @@ export default function main() {
         document.body.classList.add('page-open');
         document.body.style.cursor = '';
         document.body.style.overflow = 'hidden';
-        footer.style.opacity = 0;
+        updateFooterStyle(true);
+        animateShowBg();
 
         if(cardType === 'stack') {
             const excludeFirstMeshes = cardMeshes
@@ -496,6 +498,7 @@ export default function main() {
             gsap.to(object.rotation, {
                 duration: 0.2,
                 y: 0,
+                z: 0,
                 ease: 'sine.out',
             });
 
@@ -533,7 +536,6 @@ export default function main() {
             }
         }
 
-        animateShowBg();
         gsap.to(object.scale, { 
             duration: 1, 
             x: 1,
@@ -565,17 +567,21 @@ export default function main() {
             duration: 1, 
             y: 0, 
             z: 4.1, 
-            delay: 0.2, 
             ease: 'power1.out', 
             onComplete() {
-                gsap.to(pageIntro, { duration: 0, opacity: 1, display: 'block' });
-                gsap.to(canvas, { duration: 0, opacity: 0, display: 'none' });
-
                 window.scrollTo(0, 0);
                 document.body.style.overflow = '';
-                footer.style.opacity = 1;
-                footer.style.position = 'absolute';
-                footer.style.top = `${document.body.clientHeight}px`;
+                
+                gsap.to(pageIntro, {
+                    duration: 0,
+                    opacity: 1, 
+                    display: 'block'
+                });
+                gsap.to(canvas, {
+                    duration: 0,
+                    opacity: 0,
+                    display: 'none' 
+                });
             }
         });
     }
@@ -655,6 +661,9 @@ export default function main() {
         if (cardType === 'stack') {
             const sortedCardMeshes = cardMeshes.sort((a, b) => b.position.z - a.position.z);
 
+            dirLight.position.set(-1, 3, 3);
+            dirLight.updateMatrixWorld();
+
             gsap.to(mesh.scale, { 
                 duration: 1, 
                 x: 1.3,
@@ -717,7 +726,7 @@ export default function main() {
                 isClicked = false;
                 isShowClicked = false;
                 document.body.classList.remove('page-open');
-                footer.setAttribute('style', '');
+                updateFooterStyle(false);
             }
         });
     }
@@ -781,18 +790,21 @@ export default function main() {
                 scale: 0.5, 
                 ease: 'power3.out', 
                 onComplete() {
-                    gsap.to(pageSplash, { duration: 0, display: 'none' });
-
                     animateCircle(true);
                     animateCardMeshSort('grid', true);
+
+                    gsap.to(pageSplash, {
+                        duration: 0,
+                        display: 'none' 
+                    });
                 }
             }
         );
     }
 
     // switch 버튼 애니메이션
-    const animateCircle = active => {
-        if (active) {
+    const animateCircle = isActive => {
+        if (isActive) {
             cardsGallery.classList.remove('stack-mode', 'grid-mode');
             cardsGallery.classList.add('grid-mode');
             
@@ -842,22 +854,30 @@ export default function main() {
         const gridEffect = (cardMesh, { x, y, z }, index) => {
             if (isLoading) effect.position(cardMesh.position, x, y, z);
 
+            dirLight.position.set(-1, 3, 3);
+            dirLight.updateMatrixWorld();
+
+            updateFooterStyle(true);
             effect.rotate(cardMesh.rotation, 0);
-            effect.scale(cardMesh.scale, 1, 1, 0.1, 'back.in(2)', true).eventCallback('onUpdate', function() {
-                const progress = this.progress();
-                if (progress > 0.9 && !this.called) {
-                    this.called = true;
+            effect.scale(cardMesh.scale, 1, 1, 0.1, 'back.in(2)', true)
+                .eventCallback('onUpdate', function() {
+                    const progress = this.progress();
+                    
+                    if (progress > 0.9 && !this.called) {
+                        this.called = true;
 
-                    if (!isLoading) animateCircle(true);
+                        if (!isLoading) animateCircle(true);
 
-                    effect.position2(cardMesh.position, x, y, z, 'sine.out', true).eventCallback('onComplete', function() {
-                        if (index === 5) {
-                            setScrollSpacer();
-                            isSwitchClicked = false;
-                        }
-                    });
-                }
-            });
+                        effect.position2(cardMesh.position, x, y, z, 'sine.out', true)
+                            .eventCallback('onComplete', function() {
+                                if (index === 5) {
+                                    isSwitchClicked = false;
+                                    setScrollSpacer();
+                                    updateFooterStyle(false);
+                                }
+                            });
+                    }
+                });
         }
 
         const stackEffect = (cardMesh, index) => {
@@ -866,55 +886,49 @@ export default function main() {
             if (cardMeshesZindex.length <= 5) cardMeshesZindex.push(zIndex);
 
             animateCircle(false);
-            effect.position2(cardMesh.position, 0, 0, zIndex, 'power2.inOut').eventCallback('onUpdate', function() {
-                const progress = this.progress();
-                if (progress > 0.7 && !this.called) {
-                    this.called = true;
+            effect.position2(cardMesh.position, 0, 0, zIndex, 'power2.inOut')
+                .eventCallback('onUpdate', function() {
+                    const progress = this.progress();
 
-                    effect.scale(cardMesh.scale, 1.3, 1.3, 0, 'back.out(3)').eventCallback('onComplete', function() {
-                        if (index === 5) {
-                            sortedCardMeshes.forEach((cardMesh, i) => {
-                                if (i > 2) return;
-                                const z = -Math.PI / 25 * i;
-                                effect.rotate(cardMesh.rotation, z);
+                    if (progress > 0.7 && !this.called) {
+                        this.called = true;
+
+                        effect.scale(cardMesh.scale, 1.3, 1.3, 0, 'back.out(3)')
+                            .eventCallback('onComplete', function() {
+                                if (index === 5) {
+                                    sortedCardMeshes.forEach((cardMesh, i) => {
+                                        if (i > 2) return;
+                                        const z = -Math.PI / 25 * i;
+                                        effect.rotate(cardMesh.rotation, z);
+                                    });
+
+                                    isSwitchClicked = false;
+                                    scrollSpacer.style.height = '';
+                                    cardsGallery.classList.remove('stack-mode', 'grid-mode');
+                                    cardsGallery.classList.add('stack-mode');
+                                    updateFooterStyle(false);
+                                    setStyleVariablesCardSize(cardMesh);
+                                }
                             });
-
-                            scrollSpacer.style.height = '';
-                            footer.style.position = 'fixed';
-                            footer.style.left = 0;
-                            footer.style.bottom = 0;
-
-                            isSwitchClicked = false;
-                            cardsGallery.classList.remove('stack-mode', 'grid-mode');
-                            cardsGallery.classList.add('stack-mode');
-
-                            setStyleVariablesCardSize(cardMesh);
-                        }
-                    });
-                }
-            });
+                    }
+                });
         }
 
         sortedCardMeshes.forEach((cardMesh ,i) => {
             const { x, y, z } = cardMeshesInitInfo[cardMesh.name].position;
 
-            if (type === 'grid') {
-                footer.setAttribute('style', '');
-                gridEffect(cardMesh, { x, y, z }, i);
-            }
-
-            if (type === 'stack') {
-                stackEffect(cardMesh, i);
-            }
+            if (type === 'grid') gridEffect(cardMesh, { x, y, z }, i);
+            if (type === 'stack') stackEffect(cardMesh, i);
         });
     }
 
     // switch 버튼 클릭 핸들러
     const handleSwitchButton = event => {
-        if(isSwitchClicked) return;
-
         event.preventDefault();
         event.stopPropagation();
+
+        if (isSwitchClicked) return;
+
         const target = event.currentTarget;
         const hasStackActive = target.classList.contains('stack-active');
         const hasGridActive = target.classList.contains('grid-active');
@@ -958,7 +972,7 @@ export default function main() {
         const firstMesh = cardMeshes.sort((a, b) => b.position.z - a.position.z)[0];
         const effect = {
             position(target, x, z, duration = 0.5) {
-                gsap.to(target.position, { duration, x, z, ease: 'sine.out'})
+                gsap.to(target.position, { duration, x, z, ease: 'power1.out'})
             },
             rotate(target, y, z, duration = 0.5) {
                 gsap.to(target.rotation, { duration, y, z, ease: 'power1.out'});
@@ -974,26 +988,25 @@ export default function main() {
                 dirLight.position.set(-1, 3, 3);
                 dirLight.updateMatrixWorld();
 
-                targetHover = document.querySelector('.next-card .hover-bg');
                 effect.position(firstMesh, -1.2, 0.4);
                 effect.rotate(firstMesh, -Math.PI / 5, Math.PI / 20);
+
+                targetHover = document.querySelector('.next-card .hover-bg');
             } else if (hasShowButton) {
                 dirLight.position.set(1, 3, 3);
                 dirLight.target.position.set(0, 0, 0);
                 dirLight.updateMatrixWorld();
-
-                targetHover = document.querySelector('.show-me .hover-bg-2');
+         
                 effect.position(firstMesh, 1.2, 0.4);
                 effect.rotate(firstMesh, Math.PI / 5, -Math.PI / 20);
+
+                targetHover = document.querySelector('.show-me .hover-bg-2');
             }
             
             effect.background(targetHover, 0.6);
         }
 
         if (eventType === 'mouseleave') {
-            dirLight.position.set(-1, 3, 3);
-            dirLight.updateMatrixWorld();
-            
             if (hasNextButton) {
                 targetHover = document.querySelector('.next-card .hover-bg');
             } else if (hasShowButton) {
@@ -1027,6 +1040,15 @@ export default function main() {
             const cardMesh = v;
             const angle = - Math.PI / 25 * i;
 
+            if (i < 3) {
+                gsap.to(cardMesh.rotation, {
+                    duration: .3, 
+                    z: angle,
+                    ease: 'power2.out',
+                    delay: .5
+                });
+            }
+
             gsap.to(cardMesh.scale, {
                 duration: 0.4,
                 x: '+=.05',
@@ -1046,34 +1068,24 @@ export default function main() {
                 ease: 'power2.out',
                 delay: .5
             });
-
-            if (i < 3) {
-                gsap.to(cardMesh.rotation, {
-                    duration: .3, 
-                    z: angle,
-                    ease: 'power2.out',
-                    delay: .5
-                });
-            }
         });
-
+        
         gsap.to(hoverBg, {
             duration: .5,
             scaleX: 1.5,
             scaleY: 1.5,
             ease: 'power1.out',
             onComplete() {
+                document.body.className = '';
+                document.body.className = bodyBgColors[clickCount][0];
+
                 gsap.to(hoverBg, {
                     duration: 0,
                     scaleX: 0,
                     scaleY: 1.15,
                 });
-                
-                document.body.className = '';
-                document.body.className = bodyBgColors[clickCount][0];
             }
         });
-        
         gsap.to(firstCardMesh.position, {
             duration: 0.8,
             x: -7,
@@ -1085,8 +1097,6 @@ export default function main() {
             y: -Math.PI * 0.8,
             ease: 'power1.out',
             onComplete() {
-                const zIndex = cardMeshesZindex.slice(-1)[0] + -0.03;
-
                 isNextClicked = false;
                 cardsGallery.removeAttribute('inert');
                 cardsGallery.style.pointerEvents = '';
@@ -1094,12 +1104,12 @@ export default function main() {
                 gsap.to(firstCardMesh.position, {
                     duration: 0,
                     x: 0,
-                    z: zIndex
+                    z: cardMeshesZindex.slice(-1)[0] + -0.03 
                 });
                 gsap.to(firstCardMesh.rotation, {
                     duration: 0,
                     y: 0,
-                    z: 0,
+                    z: 0 
                 });
             }
         });
@@ -1134,6 +1144,7 @@ export default function main() {
     // show 버튼 클릭 핸들러
     const handleShowButton = () => {
         if(isNextClicked) return; 
+        
         const firstCardMesh = cardMeshes.sort((a, b) => b.position.z - a.position.z)[0];
 
         isShowClicked = true;
@@ -1153,6 +1164,27 @@ export default function main() {
             + parseInt(headerStyle.height, 10) 
             + parseInt(footerStyle.height, 10)
         }px`;
+    }
+
+    // footer 스타일 변경
+    const updateFooterStyle = isOpen => {
+        const isGrid = cardType === 'grid';
+
+        if (isOpen) {
+            footer.style.opacity = 0;
+
+            setTimeout(() => {
+                footer.style.opacity = 1;
+                footer.style.position = 'absolute';
+                footer.style.top = `${document.body.clientHeight}px`;
+            }, 1300);
+        } else {
+            footer.style.opacity = '';
+            footer.style.position = isGrid ? '' : 'fixed';
+            footer.style.top = isGrid ? '' : 'auto';
+            footer.style.bottom = isGrid ? '' : 0;
+            footer.style.left = isGrid ? '' : 0;
+        }
     }
 
     window.addEventListener('scroll', handleWindowScroll);
