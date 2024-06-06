@@ -42,7 +42,7 @@ export default function main() {
     let isClicked = false;
     let isNextClicked = false;
     let isShowClicked = false;
-    let isSwitchClicked = false;
+    let isSwitchClicked = true;
     let enabledMesh;
     let prevScrollY, newScrollY;
     let clickStartX, clickStartY, clickStartTime;
@@ -68,7 +68,7 @@ export default function main() {
         75,
         window.innerWidth / window.innerHeight, 
         0.1,
-        1000
+        2000
     );
     camera.position.z = 3.3;
     scene.add(camera);
@@ -81,7 +81,7 @@ export default function main() {
     const ambientLight = new THREE.AmbientLight('white', 1);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight('white', 2.5);
+    const dirLight = new THREE.DirectionalLight('white', 2);
     dirLight.position.set(-1, 3, 3);
     dirLight.target.position.set(0, 0, 0);
     dirLight.target.updateMatrixWorld();
@@ -418,10 +418,10 @@ export default function main() {
 
     // window 리사이즈 핸들러
     const handleWindowResize = () => {
+        renderer.setSize(window.innerWidth, window.innerHeight);
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
-
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        setScrollSpacer();
     }
 
     // window 스크롤 핸들러
@@ -436,7 +436,6 @@ export default function main() {
     const handleDocumentClick = event => {
         event.preventDefault();
         event.stopPropagation();
-
         if (mouseMoved || isClicked || cardType === 'stack' || isSwitchClicked) return;
 
         mouse.x = event.clientX / canvas.clientWidth * 2 - 1;
@@ -453,7 +452,7 @@ export default function main() {
             isClicked = true;
             prevScrollY = window.scrollY;
 
-            if (window.scrollY > 0) {
+            if (window.scrollY > 0 && cardType === 'grid') {
                 gsap.to(window, { 
                     duration: 0.4,
                     scrollTo: { y: 0 },
@@ -495,13 +494,6 @@ export default function main() {
                 });
             }
 
-            gsap.to(object.rotation, {
-                duration: 0.2,
-                y: 0,
-                z: 0,
-                ease: 'sine.out',
-            });
-
             gsap.to(object.position, {
                 duration: 1,
                 keyframes: {
@@ -516,7 +508,7 @@ export default function main() {
         if (cardType === 'grid') {
             if (object.name === 'card-2' || object.name === 'card-5') {
                 gsap.to(object.position, {
-                    duration: .8,
+                    duration: 0.8,
                     x: 0,
                     y: -.52,
                     z: 3,
@@ -541,12 +533,13 @@ export default function main() {
             x: 1,
             y: 1,
             ease: 'power1.out',
-        }); 
-        gsap.to(object.rotation, { 
+        });
+        gsap.to(object.rotation, {
             duration: 0.2,
             z: 0,
-            ease: 'power1.out' 
-        });
+            ease: 'power1.out',
+            overwrite: true,
+        })
         gsap.to(object.rotation, { 
             duration: 1, 
             y: Math.PI,
@@ -562,11 +555,10 @@ export default function main() {
                 } 
             }
         });
-
         gsap.to(camera.position, { 
             duration: 1, 
             y: 0, 
-            z: 4.1, 
+            z: 4.1,
             ease: 'power1.out', 
             onComplete() {
                 window.scrollTo(0, 0);
@@ -649,15 +641,6 @@ export default function main() {
         gsap.to(pageIntro, { duration: 0, opacity: 0, display: 'none' });
         gsap.to(canvas, { duration: 0, opacity: 1, display: 'block' });
         
-        if (window.scrollY > 0) {
-            gsap.to(camera.position, { 
-                    duration: 1,
-                    y: - newScrollY,
-                    ease: 'power1.out' 
-                }
-            );
-        }
-
         if (cardType === 'stack') {
             const sortedCardMeshes = cardMeshes.sort((a, b) => b.position.z - a.position.z);
 
@@ -781,6 +764,7 @@ export default function main() {
         tl.to(splashInner, { 
                 duration: 0.5,
                 rotation: -45,
+                delay: .6,
                 ease: 'power3.out' 
             })
         .to(splashInner, { 
@@ -850,14 +834,13 @@ export default function main() {
                 return gsap.to(target, { duration, x, y, delay, ease, overwrite });
             }
         }
+        dirLight.position.set(-1, 3, 3);
+        dirLight.updateMatrixWorld();
 
         const gridEffect = (cardMesh, { x, y, z }, index) => {
             if (isLoading) effect.position(cardMesh.position, x, y, z);
+            if (!isLoading) updateFooterStyle(true);
 
-            dirLight.position.set(-1, 3, 3);
-            dirLight.updateMatrixWorld();
-
-            updateFooterStyle(true);
             effect.rotate(cardMesh.rotation, 0);
             effect.scale(cardMesh.scale, 1, 1, 0.1, 'back.in(2)', true)
                 .eventCallback('onUpdate', function() {
@@ -892,7 +875,7 @@ export default function main() {
 
                     if (progress > 0.7 && !this.called) {
                         this.called = true;
-
+                        
                         effect.scale(cardMesh.scale, 1.3, 1.3, 0, 'back.out(3)')
                             .eventCallback('onComplete', function() {
                                 if (index === 5) {
@@ -951,7 +934,7 @@ export default function main() {
 
         isSwitchClicked = true;
 
-        if (window.scrollY > 0) {
+        if (window.scrollY > 0 && cardType === 'grid') {
             gsap.to(window, { 
                 duration: 0.4,
                 scrollTo: { y: 0 },
@@ -971,13 +954,13 @@ export default function main() {
         const hasShowButton = element.classList.contains('show-button');
         const firstMesh = cardMeshes.sort((a, b) => b.position.z - a.position.z)[0];
         const effect = {
-            position(target, x, z, duration = 0.5) {
+            position(target, x, z, duration = 0.6) {
                 gsap.to(target.position, { duration, x, z, ease: 'power1.out'})
             },
-            rotate(target, y, z, duration = 0.5) {
+            rotate(target, y, z, duration = 0.6) {
                 gsap.to(target.rotation, { duration, y, z, ease: 'power1.out'});
             },
-            background(target, scaleX, scaleY = 1.15, duration = 0.5) {
+            background(target, scaleX, scaleY = 1.15, duration = 0.6) {
                 gsap.to(target, { duration, scaleX, scaleY, ease: 'power1.out' });
             }
         }
@@ -986,17 +969,12 @@ export default function main() {
         if (eventType === 'mouseenter') {
             if (hasNextButton) {
                 dirLight.position.set(-1, 3, 3);
-                dirLight.updateMatrixWorld();
-
                 effect.position(firstMesh, -1.2, 0.4);
                 effect.rotate(firstMesh, -Math.PI / 5, Math.PI / 20);
 
                 targetHover = document.querySelector('.next-card .hover-bg');
             } else if (hasShowButton) {
                 dirLight.position.set(1, 3, 3);
-                dirLight.target.position.set(0, 0, 0);
-                dirLight.updateMatrixWorld();
-         
                 effect.position(firstMesh, 1.2, 0.4);
                 effect.rotate(firstMesh, Math.PI / 5, -Math.PI / 20);
 
@@ -1011,6 +989,9 @@ export default function main() {
                 targetHover = document.querySelector('.next-card .hover-bg');
             } else if (hasShowButton) {
                 targetHover = document.querySelector('.show-me .hover-bg-2');
+                setTimeout(() => {
+                    dirLight.position.set(-1, 3, 3);
+                }, 550);
             }
 
             effect.position(firstMesh, 0, 0);
