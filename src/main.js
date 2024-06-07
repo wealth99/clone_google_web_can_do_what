@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { gsap, ScrollToPlugin } from 'gsap/all';
 gsap.registerPlugin(ScrollToPlugin);
 
@@ -22,12 +23,12 @@ export default function main() {
     const cardMeshes = [];
     const cardMeshesZindex = [];
     const cardMeshesInitInfo = {
-        'card-0': { name: 'card-0', position: new THREE.Vector3(-1.8, 0.9, 0), image: '/images/1_titlecard.png', video: '' },
-        'card-1': { name: 'card-1', position: new THREE.Vector3(0, 0.9, 0), image: '/images/2.png', video: '/videos/2.mp4' },
-        'card-2': { name: 'card-2', position: new THREE.Vector3(1.8, 0.9, 0), image: '/images/3.png', video: '/videos/3.mp4' },
-        'card-3': { name: 'card-3', position: new THREE.Vector3(-1.8, -1.8, 0), image: '/images/4.png', video: '/videos/4.mp4' },
-        'card-4': { name: 'card-4', position: new THREE.Vector3(0, -1.8, 0), image: '/images/5.png', video: '/videos/5.mp4' },
-        'card-5': { name: 'card-5', position: new THREE.Vector3(1.8, -1.8, 0), image: '/images/6.png', video: '/videos/6.mp4' }
+        'card-0': { name: 'card-0', position: new THREE.Vector3(-1.8, 0.8, 0), image: '/images/1_titlecard.png', video: '' },
+        'card-1': { name: 'card-1', position: new THREE.Vector3(0, 0.8, 0), image: '/images/2.png', video: '/videos/2.mp4' },
+        'card-2': { name: 'card-2', position: new THREE.Vector3(1.8, 0.8, 0), image: '/images/3.png', video: '/videos/3.mp4' },
+        'card-3': { name: 'card-3', position: new THREE.Vector3(-1.8, -1.9, 0), image: '/images/4.png', video: '/videos/4.mp4' },
+        'card-4': { name: 'card-4', position: new THREE.Vector3(0, -1.9, 0), image: '/images/5.png', video: '/videos/5.mp4' },
+        'card-5': { name: 'card-5', position: new THREE.Vector3(1.8, -1.9, 0), image: '/images/6.png', video: '/videos/6.mp4' }
     }
     const cardShadowMeshes = [];
     const bodyBgColors = [
@@ -100,6 +101,21 @@ export default function main() {
     dirLight.shadow.left = -15;
     dirLight.shadow.bias = -0.001; // 그림자 경계의 어긋남 방지
     dirLight.shadow.normalBias = 0.001; // 표면의 미세한 디테일 고려
+
+    // // LightHelper
+    // const lightHelper = new THREE.DirectionalLightHelper(dirLight);
+    // scene.add(lightHelper);
+
+    // // AxesHelper
+    // const axesHelper = new THREE.AxesHelper(3);
+    // scene.add(axesHelper);
+
+    // // GridHelper
+    // const gridHelper = new THREE.GridHelper(5); 
+    // scene.add(gridHelper);
+
+    // // Controls
+    // const controls = new OrbitControls(camera, renderer.domElement);
 
     // Mesh
     const floorShadowMesh = new THREE.Mesh(
@@ -359,10 +375,11 @@ export default function main() {
     }
     
     const boxGeometry = RoundEdgedBoxFlat(1.5, 2.4, 0.2, 0.15, 9);
+    boxGeometry.center();
     boxGeometry.computeVertexNormals();
     const boxMaterial = new THREE.MeshBasicMaterial( { color: '#ebebeb', side: THREE.DoubleSide } );
 
-    const setStyleVariablesCardSize = cardMesh => {
+    const updateStyleVariablesCardSize = cardMesh => {
         const { pixelSizeWidth, pixelSizeHeight } = calcPixelSizeFromMesh(cardMesh);
         
         document.documentElement.style.setProperty('--cardPixelWidth', `${pixelSizeWidth}px`);
@@ -392,8 +409,8 @@ export default function main() {
 
         scene.add(cardMesh);
 
-        setStyleVariablesCardSize(cardMesh);
-        if(cardMeshes.length === 1) setScrollSpacer();
+        updateStyleVariablesCardSize(cardMesh);
+        if(cardMeshes.length === 1) updateScrollSpacer();
 
         // if (videoElement) {
         //     const renderFrame = () => {
@@ -435,12 +452,40 @@ export default function main() {
         renderer.render(scene, camera);
     }
 
+    const updateMeshSize = () => {
+        const maxWidth = 1560;
+
+        // 화면 크기가 1560 이하일 때 Mesh의 크기 조정
+        if (window.innerWidth < maxWidth) {
+            const scaleFactor = window.innerWidth / maxWidth;
+            const yAxis = 1 - 1 * scaleFactor;
+
+            cardMeshes.forEach((v, i) => {
+                const initPosition = cardMeshesInitInfo[v.name].position;
+
+                v.scale.set(scaleFactor, scaleFactor);
+                v.position.set(initPosition.x * scaleFactor, yAxis + initPosition.y * scaleFactor);
+            });
+        } else {
+            console.log(2);
+            cardMeshes.forEach((v, i) => {
+                const initPosition = cardMeshesInitInfo[v.name].position;
+
+                v.scale.set(1, 1);
+                v.position.set(initPosition.x, initPosition.y);
+            });
+        }
+    }
+
     // window 리사이즈 핸들러
     const handleWindowResize = () => {
+        updateMeshSize();
+        updateScrollSpacer();
+        updateStyleVariablesCardSize(cardMeshes[0]);
+
         renderer.setSize(window.innerWidth, window.innerHeight);
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
-        setScrollSpacer();
     }
 
     // window 스크롤 핸들러
@@ -879,7 +924,7 @@ export default function main() {
                             .eventCallback('onComplete', function() {
                                 if (index === 5) {
                                     isSwitchClicked = false;
-                                    setScrollSpacer();
+                                    updateScrollSpacer();
                                     updateFooterStyle(false);
                                 }
                             });
@@ -905,7 +950,7 @@ export default function main() {
                     if (progress > 0.7 && !this.called) {
                         this.called = true;
                         
-                        effect.scale(cardMesh.scale, 1.3, 1.3, 0, 'back.out(3)')
+                        effect.scale(cardMesh.scale, '+=0.3', '+=0.3', 0, 'back.out(3)')
                             .eventCallback('onComplete', function() {
                                 if (index === 5) {
                                     sortedCardMeshes.forEach((v, i) => {
@@ -925,7 +970,7 @@ export default function main() {
                                     cardsGallery.classList.remove('stack-mode', 'grid-mode');
                                     cardsGallery.classList.add('stack-mode');
                                     updateFooterStyle(false);
-                                    setStyleVariablesCardSize(cardMesh);
+                                    updateStyleVariablesCardSize(cardMesh);
                                 }
                             });
                     }
@@ -1170,16 +1215,17 @@ export default function main() {
     }
 
     // cards gallery 스크롤 값 설정
-    const setScrollSpacer = () => {
-        const headerStyle = window.getComputedStyle(header);
-        const footerStyle = window.getComputedStyle(footer);
+    const updateScrollSpacer = () => {
+        const headerHeight = parseInt(window.getComputedStyle(header).height, 10);
+        const footerHeight = parseInt(window.getComputedStyle(footer), 10);
         const { pixelSizeHeight } = calcPixelSizeFromMesh(cardMeshes[0]);
-        
-        scrollSpacer.style.height = `${ 
-            pixelSizeHeight * 2 
-            + parseInt(headerStyle.height, 10) 
-            + parseInt(footerStyle.height, 10)
-        }px`;
+        const spacer = pixelSizeHeight * 2 + headerHeight + footerHeight;
+
+        if (window.innerHeight  < spacer + headerHeight * 1.1) {
+            scrollSpacer.style.height = `${spacer}px`;
+        } else {
+            scrollSpacer.style.height = `${window.innerHeight - headerHeight}px`;
+        }
     }
 
     // footer 스타일 변경
