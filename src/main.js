@@ -29,6 +29,7 @@ export default function main() {
         'card-4': { name: 'card-4', position: new THREE.Vector3(0, -1.8, 0), image: '/images/5.png', video: '/videos/5.mp4' },
         'card-5': { name: 'card-5', position: new THREE.Vector3(1.8, -1.8, 0), image: '/images/6.png', video: '/videos/6.mp4' }
     }
+    const cardShadowMeshes = [];
     const bodyBgColors = [
         ['blue-mode', '#0073e6'],
         ['yellow-mode', '#ffbb25'],
@@ -375,7 +376,7 @@ export default function main() {
 
         const cardMesh = new THREE.Mesh(
             boxGeometry, [
-                new THREE.MeshStandardMaterial({ map: texture, side: THREE.DoubleSide  }), 
+                new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }), 
                 boxMaterial,
                 boxMaterial,
             ]
@@ -406,6 +407,24 @@ export default function main() {
 
         //     renderFrame();
         // }
+    }
+    
+    // card shadow mesh 만들기
+    const createShadowCardMesh = (mesh, rotationZ) => {
+        const position = mesh.position.clone();
+        const rotation = mesh.rotation.clone();
+        const scale = mesh.scale.clone();
+        const shadowMaterial = new THREE.ShadowMaterial({ opacity: 0.15, transparent: true, side: THREE.DoubleSide });
+    
+        const shadowMesh = new THREE.Mesh(boxGeometry, shadowMaterial);
+        shadowMesh.position.copy(position);
+        shadowMesh.rotation.set(rotation.x, rotation.y, rotationZ);
+        shadowMesh.scale.copy(scale);
+        shadowMesh.receiveShadow = true;
+        shadowMesh.castShadow = true;
+    
+        scene.add(shadowMesh);
+        cardShadowMeshes.push(shadowMesh);
     }
 
     Object.values(cardMeshesInitInfo).forEach(createCardMesh);
@@ -840,6 +859,11 @@ export default function main() {
         const gridEffect = (cardMesh, { x, y, z }, index) => {
             if (isLoading) effect.position(cardMesh.position, x, y, z);
             if (!isLoading) updateFooterStyle(true);
+            if (cardShadowMeshes.length > 0) {
+                cardShadowMeshes.forEach((v, i) => {
+                    v.material.opacity = 0;
+                });
+            }
 
             effect.rotate(cardMesh.rotation, 0);
             effect.scale(cardMesh.scale, 1, 1, 0.1, 'back.in(2)', true)
@@ -864,9 +888,14 @@ export default function main() {
         }
 
         const stackEffect = (cardMesh, index) => {
-            const zIndex = -index / 30;
+            const zIndex = -index / 40;
 
             if (cardMeshesZindex.length <= 5) cardMeshesZindex.push(zIndex);
+            if (cardShadowMeshes.length > 0) {
+                cardShadowMeshes.forEach((v, i) => {
+                    v.material.opacity = 0.15;
+                });
+            }
 
             animateCircle(false);
             effect.position2(cardMesh.position, 0, 0, zIndex, 'power2.inOut')
@@ -879,10 +908,16 @@ export default function main() {
                         effect.scale(cardMesh.scale, 1.3, 1.3, 0, 'back.out(3)')
                             .eventCallback('onComplete', function() {
                                 if (index === 5) {
-                                    sortedCardMeshes.forEach((cardMesh, i) => {
-                                        if (i > 2) return;
+                                    sortedCardMeshes.forEach((v, i) => {
                                         const z = -Math.PI / 25 * i;
-                                        effect.rotate(cardMesh.rotation, z);
+
+                                        if (i < 3)  {
+                                            effect.rotate(v.rotation, z);
+                                        }
+
+                                        if (i !== 0 && cardShadowMeshes.length < 2) {
+                                            createShadowCardMesh(v, z);
+                                        }
                                     });
 
                                     isSwitchClicked = false;
@@ -991,9 +1026,9 @@ export default function main() {
                 targetHover = document.querySelector('.show-me .hover-bg-2');
                 setTimeout(() => {
                     dirLight.position.set(-1, 3, 3);
-                }, 550);
+                }, 550)
             }
-
+            
             effect.position(firstMesh, 0, 0);
             effect.rotate(firstMesh, 0, 0);
             effect.background(targetHover, 0);
