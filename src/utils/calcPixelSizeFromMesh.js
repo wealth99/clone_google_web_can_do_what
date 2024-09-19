@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 
 /**
- * 주어진 메쉬의 크기를 바탕으로 화면에서의 픽셀 크기를 계산하는 함수.
+ * 메쉬의 크기를 바탕으로 화면에서의 픽셀 크기를 계산하는 함수.
  *
- * @param {THREE.mesh} cardMesh - 크기를 계산할 대상인 three.js 메쉬 객체.
+ * @param {THREE.mesh} cardMesh - 계산할 대상인 three.js 메쉬 객체.
  * @param {THREE.PerspectiveCamera} camera - 크기를 계산할 대상인 three.js 메쉬 객체.
- * @returns {Object} - 메쉬의 화면 내 가로 및 세로 픽셀 크기를 포함하는 객체.
+ * @returns {Object} - 메쉬의 화면 내 가로 및 세로 픽셀 크기
  *  - {number} pixelSizeWidth: 메쉬의 가로 크기에 해당하는 픽셀 수.
  *  - {number} pixelSizeHeight: 메쉬의 세로 크기에 해당하는 픽셀 수.
  */
@@ -34,5 +34,8 @@ export default function calcPixelSizeFromMesh(cardMesh, camera) {
     const pixelSizeHeight = window.innerHeight * ((1 / height) * size.y);
 
     // 메쉬의 가로 및 세로 픽셀 크기를 반환
-    return { pixelSizeWidth, pixelSizeHeight }
+    return { 
+        pixelSizeWidth,
+        pixelSizeHeight
+    }
 }

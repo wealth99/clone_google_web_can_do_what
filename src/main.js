@@ -2,10 +2,13 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { gsap, ScrollToPlugin } from 'gsap/all';
 
-import calcPixelSizeFromMesh from './calcPixelSizeFromMesh';
-import roundedBoxGeometry from './roundedBoxGeometry';
+import calcPixelSizeFromMesh from './utils/calcPixelSizeFromMesh';
+import roundedBoxGeometry from './utils/roundedBoxGeometry';
+import getMeshScreenPosition from './utils/getMeshScreenPosition';
 
 gsap.registerPlugin(ScrollToPlugin);
+
+window.info = null;
 
 export default function main() {
     const header = document.querySelector('header');
@@ -34,7 +37,7 @@ export default function main() {
             videoPath: null,
             texture: null,
             videoContext: null,
-            videoElement: null
+            videoElement: null,
         },
         'card-1': { 
             name: 'card-1',
@@ -43,7 +46,14 @@ export default function main() {
             videoPath: '/videos/2.mp4',
             texture: null,
             videoContext: null,
-            videoElement: null
+            videoElement: null,
+            animationFrame: null,
+            renderVideoToCanvas() {
+                this.videoContext.drawImage(this.videoElement, 0, 250, 400, 400);
+                this.animationFrame = requestAnimationFrame(() => {
+                    return this.renderVideoToCanvas();
+                });
+            }
         },
         'card-2': { 
             name: 'card-2',
@@ -52,7 +62,14 @@ export default function main() {
             videoPath: '/videos/3.mp4',
             texture: null,
             videoContext: null,
-            videoElement: null
+            videoElement: null,
+            animationFrame: null,
+            renderVideoToCanvas() {
+                this.videoContext.drawImage(this.videoElement, 0, 250, 400, 400);
+                this.animationFrame = requestAnimationFrame(() => {
+                    return this.renderVideoToCanvas();
+                });
+            }
         },
         'card-3': { 
             name: 'card-3',
@@ -61,7 +78,14 @@ export default function main() {
             videoPath: '/videos/4.mp4',
             texture: null,
             videoContext: null,
-            videoElement: null
+            videoElement: null,
+            animationFrame: null,
+            renderVideoToCanvas() {
+                this.videoContext.drawImage(this.videoElement, 0, 250, 400, 400);
+                this.animationFrame = requestAnimationFrame(() => {
+                    return this.renderVideoToCanvas();
+                });
+            }
         },
         'card-4': { 
             name: 'card-4',
@@ -70,7 +94,14 @@ export default function main() {
             videoPath: '/videos/5.mp4',
             texture: null,
             videoContext: null,
-            videoElement: null
+            videoElement: null,
+            animationFrame: null,
+            renderVideoToCanvas() {
+                this.videoContext.drawImage(this.videoElement, 0, 250, 400, 400);
+                this.animationFrame = requestAnimationFrame(() => {
+                    return this.renderVideoToCanvas();
+                });
+            }
         },
         'card-5': { 
             name: 'card-5',
@@ -79,7 +110,14 @@ export default function main() {
             videoPath: '/videos/6.mp4',
             texture: null,
             videoContext: null,
-            videoElement: null
+            videoElement: null,
+            animationFrame: null,
+            renderVideoToCanvas() {
+                this.videoContext.drawImage(this.videoElement, 0, 250, 400, 400);
+                this.animationFrame = requestAnimationFrame(() => {
+                    return this.renderVideoToCanvas();
+                });
+            }
         }
     }
     const cardShadowMeshes = [];
@@ -97,7 +135,7 @@ export default function main() {
     const initMeshHeight = 453.99634792451155; // 1920xx958 기준 mesh height px
     const initScreenY = 327.6678900385606; // 1920xx958 기준 ndc 좌표계
     const initPositinY = -1.062; // 1920xx958 기준 mesh position y
-    const initScale = 1.4; // 1920xx958 기준 mesh scale 
+    const initScale = 1.4; // 1920xx958 기준 mesh scale
     let currentMeshWidth; 
     let currentMeshHeight;
     let scrollRatio = 0.0038;
@@ -174,10 +212,10 @@ export default function main() {
     scene.add(floorShadowMesh);
 
     // 이미지 로딩 
-    const loadImage = (context, url) => {
+    const loadImage = (context, path) => {
         return new Promise(resolve => {
             const img = new Image();
-            img.src = url;
+            img.src = path;
             img.onload = () => {
                 const height = (400 / img.width) * img.height;
                 context.drawImage(img, 0, 0, 400, height);
@@ -188,35 +226,26 @@ export default function main() {
     }
 
     // 비디오 로딩
-    const loadVideo = (context, url) => {
+    const loadVideo = (context, path) => {
         return new Promise(resolve => {
             const video = document.createElement('video');
-            video.src = url;
+            const handleCanPlayThrough = () => {
+                video.play();
+
+                context.drawImage(video, 0, 250, 400, 400);
+                
+                video.removeEventListener('canplaythrough', handleCanPlayThrough);
+                resolve({ context, video });
+            }
+
+            video.src = path;
             video.loop = true;
             video.muted = true;
             video.autoplay = true;
             video.crossOrigin = 'anonymous';
 
             // 비디오가 준비되면 캔버스에 비디오 그리기 시작
-            video.addEventListener('canplaythrough', () => {
-                video.play();
-                // const videoHeight = (400 / video.videoWidth) * video.videoHeight; => 400
-                // context.drawImage(video, 0, 250, 400, videoHeight);
-                context.drawImage(video, 0, 250, 400, 400);
-
-                // 캔버스에 비디오 렌더링 시작
-                // renderVideoToCanvas(context, video);
-                resolve({ context, video });
-            }, false);
-        });
-    }
-
-    // 비디오를 캔버스에 그리기
-    const renderVideoToCanvas = (context, video) => {
-        context.drawImage(video, 0, 250, 400, 400);
-
-        requestAnimationFrame(function() {
-            return renderVideoToCanvas(context, video);
+            video.addEventListener('canplaythrough', handleCanPlayThrough);
         });
     }
 
@@ -299,7 +328,7 @@ export default function main() {
         if (cardMesh.name === 'card-0' && currentScreenY === null) {
             updateScrollSpacer();
             updateStyleVariablesCardSize(cardMesh);
-            currentScreenY = getMeshScreenPosition(cardMesh).y;
+            currentScreenY = getMeshScreenPosition(cardMesh, camera, renderer).y;
         }
     }
 
@@ -325,25 +354,27 @@ export default function main() {
         cardShadowMeshes.push(shadowMesh);
     }
 
+
+    window.info = cardMeshesInitInfo;
     Object.values(cardMeshesInitInfo).forEach(createCardMesh);
 
     const animate = () => {
         requestAnimationFrame(animate);
 
-        // if (cardType === 'stack' && !isShowClicked) {
-        //     const sortedCardMeshes = cardMeshes.sort((a, b) => b.position.z - a.position.z);
+        if (cardType === 'stack' && !isShowClicked) {
+            const sortedCardMeshes = cardMeshes.sort((a, b) => b.position.z - a.position.z);
 
-        //     for(let i = 0; i < sortedCardMeshes.length; i++) {
-        //         const name = sortedCardMeshes[i].name;
-        //         const info = cardMeshesInitInfo[name];
+            for (let i = 0; i < sortedCardMeshes.length; i++) {
+                const name = sortedCardMeshes[i].name;
+                const info = cardMeshesInitInfo[name];
 
-        //         if (info.texture !== null) {
-        //             info.texture.needsUpdate = true;
-        //         }
-
-        //         if (i === 2) break;
-        //     }
-        // }
+                if (i > 2 && info.texture !== null) {
+                    info.texture.needsUpdate = false;
+                } else if (info.texture !== null) {
+                    info.texture.needsUpdate = true;
+                }
+            }
+        }
 
         renderer.render(scene, camera);
     }
@@ -436,31 +467,6 @@ export default function main() {
         }
     }
 
-    // 메쉬의 월드 좌표를 클라이언트 좌표로 변환하는 함수
-    function getMeshScreenPosition(mesh) {
-        // 메쉬의 월드 좌표를 벡터로 가져옵니다.
-        const vector = new THREE.Vector3();
-
-        // 메쉬의 월드 좌표를 가져옵니다.
-        mesh.getWorldPosition(vector);
-
-        // 월드 좌표를 NDC 좌표로 변환합니다.
-        vector.project(camera);
-
-        // 화면 좌표계를 -1 ~ 1 범위로 변환한 값을 정규화합니다.
-        const widthHalf = 0.5 * renderer.domElement.width;
-        const heightHalf = 0.5 * renderer.domElement.height;
-
-        // NDC 좌표를 2D 화면 좌표(픽셀 좌표)로 변환합니다.
-        const screenX = (vector.x * widthHalf) + widthHalf;
-        const screenY = -(vector.y * heightHalf) + heightHalf;
-
-        return {
-            x: screenX,
-            y: screenY
-        };
-    }
-
     // 카드 메쉬 애니메이션
     const animateCardMesh = object =>  {
         const { x, y, z } = object.position;
@@ -481,7 +487,7 @@ export default function main() {
             const excludeFirstMeshes = cardMeshes
                 .sort((a, b) => b.position.z - a.position.z)
                 .filter((v, i) => i !== 0);
-                
+
             for (const excludeFirstMesh of excludeFirstMeshes) {
                 gsap.to(excludeFirstMesh.rotation, {
                     duration: 0.5,
@@ -656,7 +662,7 @@ export default function main() {
                 ease: 'power1.out'
             });
 
-            for(let i = 0; i < sortedCardMeshes.length; i++) {
+            for (let i = 0; i < sortedCardMeshes.length; i++) {
                 const cardMesh = sortedCardMeshes[i];
                 const angle = - Math.PI / 25 * i;
 
@@ -945,6 +951,10 @@ export default function main() {
             if (type === 'grid') gridEffect(cardMesh, { x, y, z }, i);
             if (type === 'stack') stackEffect(cardMesh, i);
         });
+
+        if (type === 'stack') {
+            Object.values(cardMeshesInitInfo)[1].renderVideoToCanvas();
+        }
     }
 
     // 스위치 버튼 클릭 핸들러
@@ -1141,10 +1151,28 @@ export default function main() {
                 });
             }
         });
+
+        if (cardType === 'stack' && !isShowClicked) {
+            const sortedCardMeshes = cardMeshes.sort((a, b) => b.position.z - a.position.z);
+
+            for (let i = 0; i < sortedCardMeshes.length; i++) {
+                const name = sortedCardMeshes[i].name;
+                const info = cardMeshesInitInfo[name];
+
+                // if (i > 1 && info.texture !== null) {
+                //     info.texture.needsUpdate = false;
+                //     cancelAnimationFrame(info.animationFrame);
+                // } else if (info.texture !== null) {
+                //     info.texture.needsUpdate = true;
+                //     info.renderVideoToCanvas();
+                // }
+            }
+        }
     }
 
     // 다음 버튼 클릭 핸들러
     const handleNextButton = () => {
+        console.log('handleNextButton');
         if (isNextClicked) return; 
 
         isNextClicked = true;
