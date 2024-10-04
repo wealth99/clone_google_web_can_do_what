@@ -72,12 +72,13 @@ body.page-open .next-button span {transform: translate3d(-50px, 0px, 0px);opacit
 body.page-open .show-button span {transform: translate3d( 50px, 0px, 0px);opacity: 0;}
 
 header {position: fixed;top:0;left:0;width: 100%;z-index: 100;}
-.nav {display: flex;justify-content: space-between;align-items: center;padding: 34px 40px;}
-.nav a {pointer-events: all;font-size: 16px;line-height: 1.75em;color: var(--color-white);}
+nav {display: flex;justify-content: space-between;align-items: center;padding: 34px 40px;}
+nav a {pointer-events: all;font-size: 16px;line-height: 1.75em;color: var(--color-white);}
 
 footer {position: relative;width: 100%;pointer-events: none;transform: translate3d(0px, 0px, 0px);}
 footer nav {column-gap: 24px;}
-footer a:nth-of-type(1) {width: 250px;margin-right: auto;}
+footer nav a[role=button] {display: none;}
+footer .visit-link {width: 250px;margin-right: auto;}
 
 .cards-gallery-scroll-spacer {width: 1px;visibility: hidden;pointer-events: none;}
 .cards-gallery {position: fixed;top:0;left:0;width: 100%;height: 100vh;user-select: none;}
@@ -93,10 +94,6 @@ footer a:nth-of-type(1) {width: 250px;margin-right: auto;}
 .cards-gallery.grid-mode .card-button {pointer-events: none;}
 .cards-gallery.grid-mode .next-button span {transform: translate3d(-50px, 0px, 0px);opacity: 0;}
 .cards-gallery.grid-mode .show-button span {transform: translate3d( 50px, 0px, 0px);opacity: 0;}
-.cards-gallery:not(.grid-mode):not([inert]) .next-button:hover span {transform: translate3d(-50px, 0px, 0px);opacity: 1;color: var(--color-white);}
-.cards-gallery:not(.grid-mode):not([inert]) .next-button:hover span::before {transform: translate3d(-20px, 0px, 0px);opacity: 1;background-color: var(--color-white);}
-.cards-gallery:not(.grid-mode):not([inert]) .show-button:hover span {transform: translate3d(50px, 0px, 0px);opacity: 1;color: var(--color-white);}
-.cards-gallery:not(.grid-mode):not([inert]) .show-button:hover span::before {transform: translate3d(20px, 0px, 0px);opacity: 1;background-color: var(--color-white);}
 .cards-gallery .card-button {position: absolute;display: flex;align-items: center;width: calc(50% - var(--cardPixelWidth) * .5);height: 100%;text-align: right;font-size: 36px;font-weight: 700;line-height: 44px;color: #202124;}
 .cards-gallery .card-button span {position: relative;opacity: .5;transition: transform .2s ease-in-out,color .25s ease-in-out, opacity .2s linear;}
 .cards-gallery .card-button span::before {content: '';position: absolute;bottom: -5px;width: 150px;height: 3px;opacity: .5;background-color: #202124;transition: transform .2s ease-in-out,color .25s ease-in-out, opacity .2s linear;}
@@ -112,17 +109,24 @@ footer a:nth-of-type(1) {width: 250px;margin-right: auto;}
 .cards-gallery .switch-mode-button {position: absolute;left: calc(50% - 44px);bottom: 40px;;z-index: 10;display: flex;width: 88px;height: 48px;padding: 4px;border-radius: 48px;background-color: var(--color-black);transition: opacity .2s ease-in-out;}
 .cards-gallery .switch-mode-button.stack-active .stack-mode .mode-icon-bg {transform: scale(1,1);background-color: var(--color-white);}
 .cards-gallery .switch-mode-button.stack-active .stack-mode .mode-icon {background-color: var(--color-black);}
-.cards-gallery .switch-mode-button.stack-active:hover .grid-mode .mode-icon {transform: translate3d(0px, 0px, 0px) rotate(90deg) scale(1.2, 1.2);}
 .cards-gallery .switch-mode-button.grid-active .grid-mode .mode-icon-bg {transform: scale(1,1);background-color: var(--color-white);}
 .cards-gallery .switch-mode-button.grid-active .grid-mode .dot {background-color: var(--color-black);}
 .cards-gallery .switch-mode-button.grid-active .stack-mode .mode-icon {background-color: var(--color-white);}
-.cards-gallery .switch-mode-button.grid-active:hover .stack-mode .mode-icon {transform: translate3d(0px, 0px, 0px) rotate(10deg) scale(0.8, 0.8);}
 .cards-gallery .switch-mode {position:relative;display: flex;flex-shrink: 0;justify-content: center;align-items: center;width: 40px;height: 40px;}
 .cards-gallery .switch-mode .mode-icon {position: relative;display: inline-block;width: 12px;height: 16px;border-radius: 2px;transition: transform 500ms ease;}
 .cards-gallery .grid-mode {position: relative;display: flex;flex-wrap: wrap;width:40px;height:40px;}
 .cards-gallery .grid-mode .mode-icon {position: relative;display: flex;flex-wrap: wrap;width: 15px;height: 15px;column-gap: 3px;row-gap: 3px;transition: transform 500ms ease;}
 .cards-gallery .grid-mode .dot {width: 6px;height: 6px;border-radius: 50%;background-color: var(--color-white);}
 .cards-gallery .mode-icon-bg {position:absolute;top:0;left:0;transform: scale(0, 0);width:100%;height:100%;border-radius: 50%;background-color: var(--color-black);transition: transform 300ms ease-in-out 100ms;}
+
+@media (hover: hover) and (pointer: fine) {
+    .cards-gallery:not(.grid-mode):not([inert]) .next-button:hover span {transform: translate3d(-50px, 0px, 0px);opacity: 1;color: var(--color-white);}
+    .cards-gallery:not(.grid-mode):not([inert]) .next-button:hover span::before {transform: translate3d(-20px, 0px, 0px);opacity: 1;background-color: var(--color-white);}
+    .cards-gallery:not(.grid-mode):not([inert]) .show-button:hover span {transform: translate3d(50px, 0px, 0px);opacity: 1;color: var(--color-white);}
+    .cards-gallery:not(.grid-mode):not([inert]) .show-button:hover span::before {transform: translate3d(20px, 0px, 0px);opacity: 1;background-color: var(--color-white);}
+    .cards-gallery .switch-mode-button.grid-active:hover .stack-mode .mode-icon {transform: translate3d(0px, 0px, 0px) rotate(10deg) scale(0.8, 0.8);}
+    .cards-gallery .switch-mode-button.stack-active:hover .grid-mode .mode-icon {transform: translate3d(0px, 0px, 0px) rotate(90deg) scale(1.2, 1.2);}
+}
 
 #three-canvas {position: fixed;left: 0;top: 0;z-index: -1;}
 
@@ -230,3 +234,15 @@ footer a:nth-of-type(1) {width: 250px;margin-right: auto;}
 .page-intro-contents .voting .button-vote-down {margin-left: 23px;}
 .page-intro-contents .voting .button-vote-down svg:first-child {bottom: 0;left:0;}
 .page-intro-contents .voting .button-vote-down svg:last-child {bottom: 12px;left: 13px;}
+
+
+@media screen and (max-width: 768px) {
+    header {pointer-events: none;}
+    header nav {padding: 29.5px 20px 20px}
+    header nav a[role=button] {display: none;}
+
+    footer .visit-link {display: none;}
+    footer nav a[role=button] {display: block;}
+
+    .cards-gallery .switch-mode-button{position: fixed;top: 20px;right: 20px;left: auto;transform: scale(0.8);}
+}

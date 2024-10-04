@@ -8,6 +8,8 @@ import * as THREE from 'three';
  * @returns {Object} - 메쉬의 클라이언트 가로 및 세로 위치값
 */
 export default function getMeshScreenPosition(mesh, camera, renderer) {
+    const devicePixelRatio = window.devicePixelRatio > 1 ? 2 : 1;
+
     // 메쉬의 월드 좌표를 벡터로 가져옵니다.
     const vector = new THREE.Vector3();
 
@@ -18,8 +20,8 @@ export default function getMeshScreenPosition(mesh, camera, renderer) {
     vector.project(camera);
 
     // 화면 좌표계를 -1 ~ 1 범위로 변환한 값을 정규화합니다.
-    const widthHalf = 0.5 * renderer.domElement.width;
-    const heightHalf = 0.5 * renderer.domElement.height;
+    const widthHalf = (0.5 * renderer.domElement.width) / devicePixelRatio;
+    const heightHalf = (0.5 * renderer.domElement.height) / devicePixelRatio;
 
     // NDC 좌표를 2D 화면 좌표(픽셀 좌표)로 변환합니다.
     const screenX = (vector.x * widthHalf) + widthHalf;
