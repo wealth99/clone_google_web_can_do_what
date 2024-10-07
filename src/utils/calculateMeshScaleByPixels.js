@@ -21,7 +21,8 @@ export default function calculateMeshScaleByPixels(mesh, pixelWidth, pixelHeight
     const centerInCameraSpace = center.clone().applyMatrix4(camera.matrixWorldInverse);
 
     // 카메라 좌표계에서 메쉬의 중심까지의 z축 거리(카메라의 시야 방향 기준)
-    const distance = Math.abs(centerInCameraSpace.z);
+    // const distance = Math.abs(centerInCameraSpace.z);
+    const distance = Math.abs(1.1);
 
     // 카메라의 수직 시야각(FOV)을 라디안 단위로 변환
     const halfVFov = (camera.fov * Math.PI) / 360;
@@ -44,13 +45,13 @@ export default function calculateMeshScaleByPixels(mesh, pixelWidth, pixelHeight
     const currentPixelHeight = (meshHeightInWorld / meshHeightInNDC) * window.innerHeight;
     const currentPixelWidth = (meshWidthInWorld / meshWidthInNDC) * window.innerWidth;
 
-    // 원하는 픽셀 크기 대비 스케일 비율 계산 (소수점 3자리까지 반올림)
-    const scaleX = Math.round((pixelWidth / currentPixelWidth) * 1000) / 1000;
-    const scaleY = Math.round((pixelHeight / currentPixelHeight) * 1000) / 1000;
+    // 원하는 픽셀 크기 대비 스케일 비율 계산
+    const scaleX = pixelWidth / currentPixelWidth;
+    const scaleY = pixelHeight / currentPixelHeight;
 
-    // 스케일 비율 반환 (소수점 3자리까지 반올림 후 적용)
+    // 스케일 비율 반환
     return {
-        scaleX: Math.round((mesh.scale.x * scaleX) * 1000) / 1000,
-        scaleY: Math.round((mesh.scale.y * scaleY) * 1000) / 1000
+        scaleX: mesh.scale.x * scaleX,
+        scaleY: mesh.scale.y * scaleY
     };
 }

@@ -238,9 +238,6 @@ export default function main() {
 
     const getCardMeshPosition = info => {
         const wW = window.innerWidth;
-        const condition = () => {
-
-        }
 
         // 769 ~ 1380
         if (wW >= 769) {
@@ -366,8 +363,6 @@ export default function main() {
         cardMeshes.push(cardMesh);
 
         scene.add(cardMesh);
-
-        // info = cardMeshes;
  
         if (videoPath) {
             cardMeshesInitInfo[`card-${index}`].texture = texture;
@@ -379,6 +374,8 @@ export default function main() {
             updateScrollSpacer();
             updateStyleVariablesCardSize(cardMesh);
             currentScreenY = getMeshScreenPosition(cardMesh, camera, renderer).y;
+
+            console.log('currentScreenY: ', currentScreenY);
         }
     }
 
@@ -431,11 +428,50 @@ export default function main() {
         renderer.render(scene, camera);
     }
 
-    window.info = function() {
-        console.log('calcPixelSizeFromMesh: ', calcPixelSizeFromMesh(cardMeshes[0], camera, renderer))
-        console.log('getMeshScreenPosition: ', getMeshScreenPosition(cardMeshes[0], camera, renderer));
+    function moveMeshToClientY(mesh, camera, renderer) {
+        const devicePixelRatio = window.devicePixelRatio > 1 ? 2 : 1;
+        const { scaleX, scaleY } = calculateMeshScaleByPixels(cardMeshes[0], 1190, 1904, camera); 
+    
+        // 메쉬의 월드 좌표를 가져옵니다.
+        const vector = new THREE.Vector3();
+        mesh.getWorldPosition(vector);
 
-        console.log(cardMeshes[0].position);
+         // 메쉬의 경계 상자에서 높이를 계산합니다.
+        const box = new THREE.Box3().setFromObject(mesh);
+        const meshHeight = box.max.y - box.min.y;
+        // const meshHeight = (box.max.y - box.min.y) * scaleY;
+    
+        // 월드 좌표를 NDC 좌표로 변환합니다.
+        vector.project(camera);
+    
+        // 목표 클라이언트 Y 좌표 (125픽셀)를 NDC로 변환 오차범위 5픽셀?..
+        // const targetClientY = 125;
+        const targetClientY = 130
+        const targetNDCY = -((targetClientY / (renderer.domElement.height / devicePixelRatio)) * 2 - 1);
+    
+        // NDC 좌표를 갱신합니다.
+        vector.y = targetNDCY;
+    
+        // 갱신된 NDC 좌표를 월드 좌표로 변환합니다.
+        vector.unproject(camera);
+    
+        return vector.y - meshHeight / 2;
+    }
+
+    window.setInfo = function() {
+        window.firstObject = cardMeshes[0];
+
+        const { scaleX, scaleY } = calculateMeshScaleByPixels(cardMeshes[0], 1190, 1904, camera); // 오차범위 10픽셀?... 1200x1920
+        cardMeshes[0].scale.set(scaleX, scaleY);
+        
+        const moveY = moveMeshToClientY(cardMeshes[0], camera, renderer);
+        console.log('moveY: ',moveY);
+        cardMeshes[0].position.y = moveY
+
+        setTimeout(() => {
+            console.log('calcPixelSizeFromMesh: ', calcPixelSizeFromMesh(cardMeshes[0], camera, renderer))
+            console.log('getMeshScreenPosition: ', getMeshScreenPosition(cardMeshes[0], camera, renderer));
+        }, 500)
     }
 
     const updateMeshSize = () => {
@@ -554,12 +590,12 @@ export default function main() {
     // 카드 메쉬 애니메이션
     const animateCardMesh = object =>  {
         const { x, y, z } = object.position;
-        const newPositionY =  initPositinY * ((initScreenY / currentScreenY) * (initMeshHeight / currentMeshHeight));
-        const newScale = {
-            x: initScale * (initMeshWidth / currentMeshWidth),
-            y: initScale * (initMeshHeight / currentMeshHeight)
-        }
+        // const newPositionY =  initPositinY * ((initScreenY / currentScreenY) * (initMeshHeight / currentMeshHeight));
+        const newPositionY = moveMeshToClientY(cardMeshes[0], camera, renderer);
+        const { scaleX, scaleY } = calculateMeshScaleByPixels(object, 1190, 1904, camera); // 오차범위 10픽셀?... 1200x1920
 
+        console.log('newPositionY: ', newPositionY);
+        
         enabledMesh = object;
         document.body.classList.add('page-open');
         document.body.style.cursor = '';
@@ -617,8 +653,8 @@ export default function main() {
 
         gsap.to(object.scale, { 
             duration: 1, 
-            x: newScale.x,
-            y: newScale.y,
+            x: scaleX,
+            y: scaleY,
             ease: 'power1.out',
         });
 
@@ -653,13 +689,19 @@ export default function main() {
             onComplete() {
                 window.scrollTo(0, 0);
                 document.body.style.overflow = '';
-                scrollRatio = 0.0016;
+                scrollRatio = 0.0013;
 
                 gsap.to(pageIntro, {
                     duration: 0,
-                    opacity: 1,
+                    opacity: 0.5,
                     display: 'block'
                 });
+
+                // gsap.to(canvas, {
+                //     duration: 0,
+                //     opacity: 0,
+                //     display: 'none'
+                // });
             }
         });
     }
