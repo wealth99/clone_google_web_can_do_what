@@ -6,6 +6,7 @@ import calcPixelSizeFromMesh from './utils/calcPixelSizeFromMesh';
 import calculateMeshScaleByPixels from './utils/calculateMeshScaleByPixels';
 import roundedBoxGeometry from './utils/roundedBoxGeometry';
 import getMeshScreenPosition from './utils/getMeshScreenPosition';
+import getMeshWorldYAtClientY from './utils/getMeshWorldYAtClientY';
 
 gsap.registerPlugin(ScrollToPlugin);
 
@@ -428,45 +429,14 @@ export default function main() {
         renderer.render(scene, camera);
     }
 
-    function moveMeshToClientY(mesh, camera, renderer) {
-        const devicePixelRatio = window.devicePixelRatio > 1 ? 2 : 1;
-        const { scaleX, scaleY } = calculateMeshScaleByPixels(cardMeshes[0], 1190, 1904, camera); 
-    
-        // 메쉬의 월드 좌표를 가져옵니다.
-        const vector = new THREE.Vector3();
-        mesh.getWorldPosition(vector);
-
-         // 메쉬의 경계 상자에서 높이를 계산합니다.
-        const box = new THREE.Box3().setFromObject(mesh);
-        const meshHeight = box.max.y - box.min.y;
-        // const meshHeight = (box.max.y - box.min.y) * scaleY;
-    
-        // 월드 좌표를 NDC 좌표로 변환합니다.
-        vector.project(camera);
-    
-        // 목표 클라이언트 Y 좌표 (125픽셀)를 NDC로 변환 오차범위 5픽셀?..
-        // const targetClientY = 125;
-        const targetClientY = 130
-        const targetNDCY = -((targetClientY / (renderer.domElement.height / devicePixelRatio)) * 2 - 1);
-    
-        // NDC 좌표를 갱신합니다.
-        vector.y = targetNDCY;
-    
-        // 갱신된 NDC 좌표를 월드 좌표로 변환합니다.
-        vector.unproject(camera);
-    
-        return vector.y - meshHeight / 2;
-    }
-
-    window.setInfo = function() {
-        window.firstObject = cardMeshes[0];
+    window.setInfo = function() {window.firstObject = cardMeshes[0];
 
         const { scaleX, scaleY } = calculateMeshScaleByPixels(cardMeshes[0], 1190, 1904, camera); // 오차범위 10픽셀?... 1200x1920
         cardMeshes[0].scale.set(scaleX, scaleY);
         
-        const moveY = moveMeshToClientY(cardMeshes[0], camera, renderer);
+        const moveY = getMeshWorldYAtClientY(cardMeshes[0], camera, renderer);
         console.log('moveY: ',moveY);
-        cardMeshes[0].position.y = moveY
+        cardMeshes[0].position.y = moveY;
 
         setTimeout(() => {
             console.log('calcPixelSizeFromMesh: ', calcPixelSizeFromMesh(cardMeshes[0], camera, renderer))
@@ -500,27 +470,27 @@ export default function main() {
 
         // if(isPageOpen) return;
 
-        if (window.innerWidth < maxWidth) {
-            const scaleFactor = window.innerWidth / maxWidth;
-            const yAxis = 1 - 1 * scaleFactor;
+        // if (window.innerWidth < maxWidth) {
+        //     const scaleFactor = window.innerWidth / maxWidth;
+        //     const yAxis = 1 - 1 * scaleFactor;
             
-            console.log('yAxis: ', yAxis);
-            console.log('scaleFactor:' ,scaleFactor);
+        //     console.log('yAxis: ', yAxis);
+        //     console.log('scaleFactor:' ,scaleFactor);
 
-            cardMeshes.forEach(v => {
-                const initPosition = getCardMeshPosition(cardMeshesInitInfo[v.name]);
+        //     cardMeshes.forEach(v => {
+        //         const initPosition = getCardMeshPosition(cardMeshesInitInfo[v.name]);
 
-                v.scale.set(scaleFactor, scaleFactor);
-                v.position.set(initPosition.x * scaleFactor, yAxis + initPosition.y * scaleFactor);
-            });
-        } else {
-            cardMeshes.forEach(v => {
-                const initPosition = getCardMeshPosition(cardMeshesInitInfo[v.name]);
+        //         v.scale.set(scaleFactor, scaleFactor);
+        //         v.position.set(initPosition.x * scaleFactor, yAxis + initPosition.y * scaleFactor);
+        //     });
+        // } else {
+        //     cardMeshes.forEach(v => {
+        //         const initPosition = getCardMeshPosition(cardMeshesInitInfo[v.name]);
 
-                v.scale.set(1, 1);
-                v.position.set(initPosition.x, initPosition.y);
-            });
-        }
+        //         v.scale.set(1, 1);
+        //         v.position.set(initPosition.x, initPosition.y);
+        //     });
+        // }
     }
 
     // 윈도우 리사이즈 핸들러
@@ -590,12 +560,9 @@ export default function main() {
     // 카드 메쉬 애니메이션
     const animateCardMesh = object =>  {
         const { x, y, z } = object.position;
-        // const newPositionY =  initPositinY * ((initScreenY / currentScreenY) * (initMeshHeight / currentMeshHeight));
-        const newPositionY = moveMeshToClientY(cardMeshes[0], camera, renderer);
+        const newPositionY = getMeshWorldYAtClientY(cardMeshes[0], camera, renderer);
         const { scaleX, scaleY } = calculateMeshScaleByPixels(object, 1190, 1904, camera); // 오차범위 10픽셀?... 1200x1920
 
-        console.log('newPositionY: ', newPositionY);
-        
         enabledMesh = object;
         document.body.classList.add('page-open');
         document.body.style.cursor = '';

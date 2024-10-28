@@ -1,14 +1,14 @@
 import * as THREE from 'three';
 
 /**
- * 주어진 너비, 높이, 두께, 코너 반경 및 매끄러움을 기반으로 한 라운드 박스 기하학을 생성하여 반환합니다.
+ * 주어진 너비, 높이, 두께, 코너 반경 및 매끄러움을 기반으로 한 라운드 박스 기하학을 생성하여 반환합니다
  *
  * @param {number} w - 박스의 전체 너비
  * @param {number} h - 박스의 전체 높이
  * @param {number} t - 박스의 두께
  * @param {number} r - 박스의 코너 반경
  * @param {number} s - 코너의 매끄러움을 정의하는 세그먼트 수
- * @return {THREE.BufferGeometry} 라운드 박스 기하학을 나타내는 THREE.BufferGeometry 객체를 반환합니다.
+ * @return {THREE.BufferGeometry} 라운드 박스 기하학을 나타내는 THREE.BufferGeometry 객체를 반환합니다
  */
 export default function roundedBoxGeometry(w, h, t, r, s) {
     const wi = w / 2 - r;		// 내부 너비, 절반
