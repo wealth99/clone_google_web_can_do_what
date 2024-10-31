@@ -3,7 +3,8 @@ import calculateMeshScaleByPixels from './calculateMeshScaleByPixels';
 
 /**
  * 메쉬를 특정 클라이언트 Y 좌표에 맞추기 위한 월드 Y 좌표를 계산하는 함수
- * @param {THREE.Mesh} mesh - 위치를 조정하려는 대상 메쉬 객체
+ * 
+ * @param {THREE.Mesh} mesh - 계산할 대상인 three.js 메쉬 객체
  * @param {THREE.Camera} camera - 현재 장면의 카메라 객체
  * @param {THREE.WebGLRenderer} renderer - 장면을 렌더링하는 WebGLRenderer 객체
  * @returns {number} - 계산된 최종 월드 좌표의 Y 값
@@ -12,13 +13,13 @@ export default function getMeshWorldYAtClientY(mesh, camera, renderer) {
     const devicePixelRatio = window.devicePixelRatio > 1 ? 2 : 1;
 
     // 카메라의 복사본을 생성하여 z 위치를 4.1로 설정합니다.
-    const tempCamera = camera.clone();
+    let tempCamera = camera.clone();
     tempCamera.position.z = 4.1; // 고정된 Z 위치
     tempCamera.updateProjectionMatrix(); // 프로젝션 매트릭스 업데이트
     tempCamera.updateMatrixWorld(true); // 월드 매트릭스 업데이트
 
     // 메쉬의 복사본을 생성합니다.
-    const tempMesh = mesh.clone();
+    let tempMesh = mesh.clone();
     tempMesh.position.x = 0;
     tempMesh.position.z = 3; // 필요한 Z 위치 설정
     const { scaleX, scaleY } = calculateMeshScaleByPixels(tempMesh, 1190, 1904, tempCamera);
@@ -41,7 +42,7 @@ export default function getMeshWorldYAtClientY(mesh, camera, renderer) {
     meshWorldPos.project(tempCamera);
 
     // 클라이언트 Y 좌표를 NDC로 변환합니다.
-    const targetClientY = 125; // 목표 클라이언트 Y 좌표
+    const targetClientY = 128; // 목표 클라이언트 Y 좌표 (오차범위+-5)
     const targetNDCY = -((targetClientY / (renderer.domElement.height / devicePixelRatio)) * 2 - 1);
 
     // NDC 좌표를 갱신합니다.
@@ -56,18 +57,21 @@ export default function getMeshWorldYAtClientY(mesh, camera, renderer) {
     // 카메라의 월드 Y 좌표에 yDifference를 더해 최종 Y 좌표를 설정합니다.
     const finalWorldY = cameraWorldPos.y - yDifference;
 
-    // 복사본 메쉬의 자원을 해제합니다.
-    tempMesh.geometry.dispose();
-    if (Array.isArray(tempMesh.material)) {
-        tempMesh.material.forEach(material => material.dispose());
-    } else {
-        tempMesh.material.dispose();
+    // 복사된 메쉬 정리
+    if (tempMesh) {
+        if (tempMesh.geometry) tempMesh.geometry.dispose();
+        if (tempMesh.material) {
+            if (Array.isArray(tempMesh.material)) {
+                tempMesh.material.forEach(material => material.dispose());
+            } else {
+                tempMesh.material.dispose();
+            }
+        }
+        tempMesh = null; // 참조 해제
     }
 
-    // 씬에서 메쉬를 제거합니다(만약 씬에 추가된 경우).
-    if (tempMesh.parent) {
-        tempMesh.parent.remove(tempMesh);
-    }
+    // 복사된 카메라 정리
+    tempCamera = null; // 참조 해제
 
     // 최종 월드 좌표 Y 값을 반환합니다.
     return finalWorldY - meshHeight / 2;

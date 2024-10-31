@@ -3,10 +3,10 @@ import * as THREE from 'three';
 /**
  * 메쉬의 가로 및 세로 스케일 비율을 계산하여 반환하는 함수
  *
- * @param {THREE.Mesh} mesh - 스케일을 조정할 THREE.js 메쉬 객체
+ * @param {THREE.Mesh} mesh - 계산할 대상인 three.js 메쉬 객체
  * @param {number} pixelWidth - 목표로 하는 메쉬의 가로 크기(픽셀 단위)
  * @param {number} pixelHeight - 목표로 하는 메쉬의 세로 크기(픽셀 단위)
- * @param {THREE.Camera} camera - 메쉬를 렌더링할 때 사용되는 THREE.js 카메라 객체
+ * @param {THREE.Camera} camera - 현재 장면의 카메라 객체
  * @returns {Object} - 메쉬의 가로 및 세로 스케일 비율 { scaleX, scaleY }
  */
 export default function calculateMeshScaleByPixels(mesh, pixelWidth, pixelHeight, camera) {

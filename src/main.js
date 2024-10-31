@@ -1,12 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { gsap, ScrollToPlugin } from 'gsap/all';
-
-import calcPixelSizeFromMesh from './utils/calcPixelSizeFromMesh';
-import calculateMeshScaleByPixels from './utils/calculateMeshScaleByPixels';
-import roundedBoxGeometry from './utils/roundedBoxGeometry';
-import getMeshScreenPosition from './utils/getMeshScreenPosition';
-import getMeshWorldYAtClientY from './utils/getMeshWorldYAtClientY';
+import * as utils from './js/utils';
+import appState from './js/state';
 
 gsap.registerPlugin(ScrollToPlugin);
 
@@ -29,6 +25,17 @@ export default function main() {
     const switchCircles = document.querySelectorAll('.switch-circle');
     const hoverBg = document.querySelectorAll('.hover-wraaper .hover-bg');
     const hoverBg2 = document.querySelectorAll('.hover-wraaper .hover-bg-2');
+
+    const getState = appState.getState.bind(appState);
+    const setState = appState.setState.bind(appState);
+    const bodyBgColors = getState('_bodyBgColors');
+    const {
+        calcPixelSizeFromMesh,
+        calculateMeshScaleByPixels,
+        roundedBoxGeometry,
+        getMeshScreenPosition,
+        getMeshWorldYAtClientY,
+    } = utils;
     const cardMeshes = [];
     const cardMeshesZindex = [];
     const cardMeshesInitInfo = {
@@ -147,34 +154,13 @@ export default function main() {
         }
     }
     const cardShadowMeshes = [];
-    const bodyBgColors = [
-        ['blue-mode', '#0073e6'],
-        ['yellow-mode', '#ffbb25'],
-        ['red-mode', '#e42616'],
-        ['blue-mode-2', '#0073e6'],
-        ['green-mode', '#1fb254'],
-        ['red-mode', '#e42616']
-    ];
-    
-    const devicePixelRatio = window.devicePixelRatio > 1 ? 2 : 1;
     const initMeshWidth = 283.7477061776989; // 1920xx958 기준 mesh width p
     const initMeshHeight = 453.99634792451155; // 1920xx958 기준 mesh height px
     const initScreenY = 327.6678900385606; // 1920xx958 기준 ndc 좌표계
     const initPositinY = -1.062; // 1920xx958 기준 mesh position y
     const initScale = 1.4; // 1920xx958 기준 mesh scale
-    let currentMeshWidth; 
-    let currentMeshHeight;
-    let scrollRatio = 0.0038;
-    let clickCount = 0;
-    let mouseMoved;
-    let isClicked = false;
-    let isNextClicked = false;
-    let isShowClicked = false;
-    let isSwitchClicked = true;
-    let enabledMesh;
-    let prevScrollY, newScrollY;
+    const devicePixelRatio = window.devicePixelRatio > 1 ? 2 : 1;
     let clickStartX, clickStartY, clickStartTime;
-    let cardType = 'grid';
     let currentScreenY = null;
 
     const canvas = document.querySelector('#three-canvas');
@@ -332,10 +318,12 @@ export default function main() {
     // 카드 메쉬 픽셀 사이즈 업데이트
     const updateStyleVariablesCardSize = cardMesh => {
         const { pixelSizeWidth, pixelSizeHeight } = calcPixelSizeFromMesh(cardMesh, camera, renderer);
+        const currentMeshWidth = getState('_currentMeshWidth');
+        const currentMeshHeight = getState('_currentMeshHeight');
 
         if (!currentMeshWidth && !currentMeshHeight) {
-            currentMeshWidth = pixelSizeWidth;
-            currentMeshHeight = pixelSizeHeight;
+            setState('_currentMeshWidth', pixelSizeWidth);
+            setState('_currentMeshHeight', pixelSizeHeight);
         }
 
         document.documentElement.style.setProperty('--cardPixelWidth', `${pixelSizeWidth}px`);
@@ -362,7 +350,6 @@ export default function main() {
         cardMesh.castShadow = true;
         cardMesh.receiveShadow = true;
         cardMeshes.push(cardMesh);
-
         scene.add(cardMesh);
  
         if (videoPath) {
@@ -372,8 +359,8 @@ export default function main() {
         }
 
         if (cardMesh.name === 'card-0' && currentScreenY === null) {
-            updateScrollSpacer();
             updateStyleVariablesCardSize(cardMesh);
+            updateScrollSpacer();   
             currentScreenY = getMeshScreenPosition(cardMesh, camera, renderer).y;
 
             console.log('currentScreenY: ', currentScreenY);
@@ -405,6 +392,9 @@ export default function main() {
     Object.values(cardMeshesInitInfo).forEach(createCardMesh);
 
     const animate = () => {
+        const isShowClicked = getState('_isShowClicked');
+        const cardType = getState('_cardType');
+
         requestAnimationFrame(animate);
 
         if (
@@ -429,18 +419,20 @@ export default function main() {
         renderer.render(scene, camera);
     }
 
-    window.setInfo = function() {window.firstObject = cardMeshes[0];
+    window.setInfo = function() {
+        const enabledMesh = getState('enabledMesh');
 
-        const { scaleX, scaleY } = calculateMeshScaleByPixels(cardMeshes[0], 1190, 1904, camera); // 오차범위 10픽셀?... 1200x1920
-        cardMeshes[0].scale.set(scaleX, scaleY);
+        window.firstObject = enabledMesh;
+
+        const { scaleX, scaleY } = calculateMeshScaleByPixels(enabledMesh, 1190, 1904, camera); // 오차범위 10픽셀?... 1200x1920
+        enabledMesh.scale.set(scaleX, scaleY);
         
-        const moveY = getMeshWorldYAtClientY(cardMeshes[0], camera, renderer);
-        console.log('moveY: ',moveY);
-        cardMeshes[0].position.y = moveY;
+        const moveY = getMeshWorldYAtClientY(enabledMesh, camera, renderer);
+        enabledMesh.position.y = moveY;
 
         setTimeout(() => {
-            console.log('calcPixelSizeFromMesh: ', calcPixelSizeFromMesh(cardMeshes[0], camera, renderer))
-            console.log('getMeshScreenPosition: ', getMeshScreenPosition(cardMeshes[0], camera, renderer));
+            console.log('calcPixelSizeFromMesh: ', calcPixelSizeFromMesh(enabledMesh, camera, renderer))
+            console.log('getMeshScreenPosition: ', getMeshScreenPosition(enabledMesh, camera, renderer));
         }, 500)
     }
 
@@ -509,10 +501,11 @@ export default function main() {
     const handleWindowScroll = () => {
         const isPageOpen = document.body.classList.contains('page-open');
         const { y: rectY } = pageIntroInner.getBoundingClientRect();
-        
+        const scrollRatio = getState('_scrollRatio');
+
         if (rectY >= 0) {
-            newScrollY = window.scrollY * scrollRatio;
-            camera.position.y = - newScrollY;
+            setState('_newScrollY', window.scrollY * scrollRatio);
+            camera.position.y =- getState('_newScrollY');
         }
 
         if (isPageOpen && rectY >= -150) {
@@ -526,6 +519,12 @@ export default function main() {
     const handleDocumentClick = event => {
         event.preventDefault();
         event.stopPropagation();
+
+        const mouseMoved = getState('_mouseMoved');
+        const isClicked = getState('_isClicked');
+        const isSwitchClicked = getState('_isSwitchClicked');
+        const cardType = getState('_cardType');
+
         if (mouseMoved || isClicked || cardType === 'stack' || isSwitchClicked) return;
 
         mouse.x = event.clientX / canvas.clientWidth * 2 - 1;
@@ -539,8 +538,8 @@ export default function main() {
         if (isIntersect) {
             const object = intersects[0].object;
 
-            isClicked = true;
-            prevScrollY = window.scrollY;
+            setState('_isClicked', true);
+            setState('_prevScrollY', window.scrollY);
 
             if (window.scrollY > 0 && cardType === 'grid') {
                 gsap.to(window, { 
@@ -560,15 +559,16 @@ export default function main() {
     // 카드 메쉬 애니메이션
     const animateCardMesh = object =>  {
         const { x, y, z } = object.position;
-        const newPositionY = getMeshWorldYAtClientY(cardMeshes[0], camera, renderer);
         const { scaleX, scaleY } = calculateMeshScaleByPixels(object, 1190, 1904, camera); // 오차범위 10픽셀?... 1200x1920
+        const newPositionY = getMeshWorldYAtClientY(object, camera, renderer);
+        const cardType = getState('_cardType');
 
-        enabledMesh = object;
         document.body.classList.add('page-open');
         document.body.style.cursor = '';
         document.body.style.overflow = 'hidden';
         updateFooterStyle(true);
         animateShowBg();
+        setState('enabledMesh', object);
 
         if (cardType === 'stack') {
             const excludeFirstMeshes = cardMeshes
@@ -656,7 +656,6 @@ export default function main() {
             onComplete() {
                 window.scrollTo(0, 0);
                 document.body.style.overflow = '';
-                scrollRatio = 0.0013;
 
                 gsap.to(pageIntro, {
                     duration: 0,
@@ -675,6 +674,8 @@ export default function main() {
 
     // 카드 메쉬 호버 애니메이션
     const animateCardMeshHover = (object = null) => {
+        const cardType = getState('_cardType');
+
         document.body.style.cursor = object ? 'pointer' : '';
 
         if (cardType === 'grid') {
@@ -692,6 +693,9 @@ export default function main() {
 
     // document 마우스무브 핸들러
     const handleDocumentMousemove = e => {
+        const isClicked = getState('_isClicked');
+        const cardType = getState('_cardType');
+
         if (isClicked || cardType === 'stack') return;
 
         mouse.x = e.clientX / canvas.clientWidth * 2 - 1;
@@ -723,18 +727,20 @@ export default function main() {
         const timeDiff = Date.now() - clickStartTime;
 
         if (xDiff > 5 || yDiff > 5 || timeDiff > 500) {
-            mouseMoved = true;
+            setState('_mouseMoved', true);
         } else {
-            mouseMoved = false;
+            setState('_mouseMoved', false);
         }
     }
 
     // 메쉬 리셋 애니메이션
     const animateResetMesh = (mesh, position) => {
         const { x, y, z } = position;
+        const cardType = getState('_cardType');
+        const prevScrollY = getState('_prevScrollY')
         
         gsap.to(pageIntro, { duration: 0, opacity: 0, display: 'none' });
-        gsap.to(canvas.parentElement, { duration: 0, opacity: 1, display: 'block' });
+        gsap.to(canvas, { duration: 0, opacity: 1, display: 'block' });
         
         if (cardType === 'stack') {
             const sortedCardMeshes = cardMeshes.sort((a, b) => b.position.z - a.position.z);
@@ -815,11 +821,9 @@ export default function main() {
             delay: 0.3, 
             ease: 'power2.out', 
             onComplete() {
-                isClicked = false;
-                isShowClicked = false;
                 document.body.classList.remove('page-open');
-                scrollRatio = 0.0038;
-
+                setState('_isClicked', false);
+                setState('_isShowClicked', false);
                 updateFooterStyle(false);
             }
         });
@@ -827,10 +831,13 @@ export default function main() {
 
     // 닫기 버튼 클릭 핸들러
     const handleCloseButton = () => {
+        const enabledMesh = getState('enabledMesh');
+        const meshName = enabledMesh.name;
+        const cardType = getState('_cardType');
         let position;
-
+        
         if (cardType === 'grid') {
-            position = getCardMeshPosition(cardMeshesInitInfo[enabledMesh.name]);
+            position = getCardMeshPosition(cardMeshesInitInfo[meshName]);
         } else {
             position = new THREE.Vector3(0, 0, 0);
         }
@@ -977,7 +984,7 @@ export default function main() {
                         effect.position2(cardMesh.position, x, y, z, 'sine.out', true)
                             .eventCallback('onComplete', function() {
                                 if (index === 5) {
-                                    isSwitchClicked = false;
+                                    setState('_isSwitchClicked', false);
                                     updateScrollSpacer();
                                     updateFooterStyle(false);
                                 }
@@ -1035,7 +1042,7 @@ export default function main() {
                                         }
                                     });
                                     
-                                    isSwitchClicked = false;
+                                    setState('_isSwitchClicked', false);
                                     scrollSpacer.style.height = '';
                                     cardsGallery.classList.remove('stack-mode', 'grid-mode');
                                     cardsGallery.classList.add('stack-mode');
@@ -1069,6 +1076,9 @@ export default function main() {
     const handleSwitchButton = event => {
         event.preventDefault();
         event.stopPropagation();
+        
+        const isSwitchClicked = getState('_isSwitchClicked');
+        const cardType = getState('_cardType');
 
         if (isSwitchClicked) return;
 
@@ -1080,19 +1090,20 @@ export default function main() {
             document.body.style.cursor = '';
 
             if (hasStackActive) {
-                cardType = 'grid';
+                setState('_cardType', 'grid');
                 target.classList.add('grid-active');
                 animateCardMeshSort('grid');
             }
 
             if (hasGridActive) {
-                cardType = 'stack';
+                setState('_cardType', 'stack');
                 target.classList.add('stack-active');
                 animateCardMeshSort('stack');
             }
         }
 
-        isSwitchClicked = true;
+        setState('_isSwitchClicked', true);
+        setState('_prevScrollY', 0);
 
         if (window.scrollY > 0 && cardType === 'grid') {
             gsap.to(window, { 
@@ -1167,6 +1178,10 @@ export default function main() {
 
     // 호버 래퍼 마우스 액션 핸들러
     const handleHoverWrapperAction = event => {
+        const isNextClicked = getState('_isNextClicked');
+        const isShowClicked = getState('_isShowClicked');
+        const cardType = getState('_cardType');
+
         if (cardType === 'grid' || isShowClicked || isNextClicked) return;
         
         const eventType = event.type;
@@ -1181,6 +1196,8 @@ export default function main() {
         const excludeFirstMeshes = cardMeshes
             .sort((a, b) => b.position.z - a.position.z)
             .filter((v, i) => v !== firstCardMesh);
+        const isShowClicked = getState('_isShowClicked');
+        const cardType = getState('_cardType');
 
         excludeFirstMeshes.forEach((v, i) => {
             const cardMesh = v;
@@ -1225,7 +1242,7 @@ export default function main() {
             ease: 'power1.out',
             onComplete() {
                 document.body.className = '';
-                document.body.className = bodyBgColors[clickCount][0];
+                document.body.className = bodyBgColors[getState('_clickCount')][0];
 
                 gsap.to(hoverBg, {
                     duration: 0,
@@ -1247,7 +1264,7 @@ export default function main() {
             y: -Math.PI * 0.8,
             ease: 'power1.out',
             onComplete() {
-                isNextClicked = false;
+                setState('_isNextClicked', false);
                 cardsGallery.removeAttribute('inert');
                 cardsGallery.style.pointerEvents = '';
 
@@ -1285,16 +1302,20 @@ export default function main() {
 
     // 다음 버튼 클릭 핸들러
     const handleNextButton = () => {
+        const isNextClicked = getState('_isNextClicked');
+
         if (isNextClicked) return; 
 
-        isNextClicked = true;
+        setState('_isNextClicked', true);
         cardsGallery.setAttribute('inert', '');
         cardsGallery.style.pointerEvents = 'none';
 
-        if (clickCount === 5) clickCount = -1;
-
-        clickCount += 1;
-        document.body.backgroundColor = bodyBgColors[clickCount][1];
+        if (getState('_clickCount') === 5) {
+            setState('_clickCount', 4);
+        }
+ 
+        setState('_clickCount', getState('_clickCount') + 1);
+        document.body.backgroundColor = bodyBgColors[getState('_clickCount')][1];
         
         animateNextCard();
     }
@@ -1311,12 +1332,12 @@ export default function main() {
 
     // 보기 버튼 클릭 핸들러
     const handleShowButton = () => {
+        const isNextClicked = getState('_isNextClicked'); 
         if(isNextClicked) return; 
         
         const firstCardMesh = cardMeshes.sort((a, b) => b.position.z - a.position.z)[0];
 
-        isShowClicked = true;
-
+        setState('_isShowClicked', true);
         animateShowBg();
         animateCardMesh(firstCardMesh);
     }
@@ -1325,7 +1346,8 @@ export default function main() {
     const updateScrollSpacer = () => {
         const headerHeight = parseInt(window.getComputedStyle(header).height, 10);
         const footerHeight = parseInt(window.getComputedStyle(footer).height, 10);
-        const pixelSizeHeight = currentMeshHeight;
+        // const pixelSizeHeight = currentMeshHeight;
+        const pixelSizeHeight = getState('_currentMeshHeight');
         const size = window.innerWidth >= 768 ? 2 : 3;
         const spacer = pixelSizeHeight * size + headerHeight + footerHeight;
 
@@ -1338,6 +1360,7 @@ export default function main() {
 
     // 푸터 스타일 변경
     const updateFooterStyle = isOpen => {
+        const cardType = getState('_cardType');
         const isGrid = cardType === 'grid';
 
         if (isOpen) {

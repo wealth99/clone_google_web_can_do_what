@@ -3,8 +3,8 @@ import * as THREE from 'three';
 /**
  * 메쉬의 크기를 바탕으로 화면에서의 픽셀 크기를 계산하는 함수
  *
- * @param {THREE.mesh} mesh - 계산할 대상인 three.js 메쉬 객체
- * @param {THREE.PerspectiveCamera} camera - 크기를 계산할 대상인 three.js 메쉬 객체
+ * @param {THREE.Mesh} mesh - 계산할 대상인 three.js 메쉬 객체
+ * @param {THREE.PerspectiveCamera} camera - 현재 장면의 카메라 객체
  * @returns {Object} - 메쉬의 화면 내 가로 및 세로 픽셀 크기
  *  - {number} pixelSizeWidth: 메쉬의 가로 크기에 해당하는 픽셀 수
  *  - {number} pixelSizeHeight: 메쉬의 세로 크기에 해당하는 픽셀 수
