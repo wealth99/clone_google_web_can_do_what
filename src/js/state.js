@@ -2,6 +2,13 @@ import * as THREE from 'three';
 
 class State {
     constructor() {
+        this._canvas = document.querySelector('#three-canvas'),
+        this._scene = null,
+        this._camera = null,
+        this._mouse = null,
+        this._raycaster = null,
+        this._renderer = null,
+        this._dirLight = null,
         this._currentMeshWidth =  null,
         this._currentMeshHeight = null,
         this._scrollRatio = 0.0038,
@@ -18,7 +25,6 @@ class State {
         this._clickStartY = null, 
         this._clickStartTime = null,
         this._cardType = 'grid',
-        this._currentScreenY = null,
         this._bodyBgColors = [
             ['blue-mode', '#0073e6'],
             ['yellow-mode', '#ffbb25'],
@@ -27,6 +33,7 @@ class State {
             ['green-mode', '#1fb254'],
             ['red-mode', '#e42616']
         ],
+        this._boxGeometry = null,
         this._cardMeshes = [],
         this._cardShadowMeshes = [],
         this._cardMeshesZindex = [],
@@ -147,8 +154,16 @@ class State {
         }
     }
 
-    getState(key) {
-        return this[key];
+    getState(...keys) {
+        if (keys.length === 1) {
+            return this[keys[0]];
+        }
+        
+        return keys.reduce((acc, key) => {
+            const cleanedKey = key.startsWith('_') ? key.slice(1) : key;
+            acc[cleanedKey] = this[key];
+            return acc;
+        }, {});
     }
 
     setState(key, value) {

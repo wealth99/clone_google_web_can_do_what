@@ -9,7 +9,7 @@ import * as THREE from 'three';
  *  - {number} pixelSizeWidth: 메쉬의 가로 크기에 해당하는 픽셀 수
  *  - {number} pixelSizeHeight: 메쉬의 세로 크기에 해당하는 픽셀 수
  */
-export default function calcPixelSizeFromMesh(mesh, camera) {
+export default function getPixelSizeFromMesh(mesh, camera) {
     // 메쉬의 바운딩 박스를 계산하여 크기를 얻음
     const boundingBox = new THREE.Box3().setFromObject(mesh);
     const size = boundingBox.getSize(new THREE.Vector3());

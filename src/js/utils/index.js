@@ -1,5 +1,11 @@
-export { default as calcPixelSizeFromMesh } from './calcPixelSizeFromMesh';
-export { default as calculateMeshScaleByPixels } from './calculateMeshScaleByPixels';
+export { default as roundedBoxGeometry } from './roundedBoxGeometry';
+export { default as getPixelSizeFromMesh } from './getPixelSizeFromMesh';
+export { default as getMeshScaleByPixels } from './getMeshScaleByPixels';
 export { default as getMeshScreenPosition } from './getMeshScreenPosition';
 export { default as getMeshWorldYAtClientY } from './getMeshWorldYAtClientY';
-export { default as roundedBoxGeometry } from './roundedBoxGeometry';
+export { default as getCardMeshPosition } from './getCardMeshPosition';
+export { default as updateVariablesMeshSize } from './updateVariablesMeshSize';
+export { default as updateFooterLocation } from './updateFooterLocation';
+export { default as updateScrollSpacer } from './updateScrollSpacer';
+export { default as createCanvasTexture } from './createCanvasTexture';
+export { default as updateMeshSizeBreakPoints } from './updateMeshSizeBreakPoints';

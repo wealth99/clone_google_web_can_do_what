@@ -9,9 +9,15 @@ import * as THREE from 'three';
  * @param {THREE.Camera} camera - 현재 장면의 카메라 객체
  * @returns {Object} - 메쉬의 가로 및 세로 스케일 비율 { scaleX, scaleY }
  */
-export default function calculateMeshScaleByPixels(mesh, pixelWidth, pixelHeight, camera) {
+export default function getMeshScaleByPixels(mesh, pixelWidth, pixelHeight, camera) {
+    let tempMesh = mesh.clone();
+    tempMesh.position.set(0, 0, 3);  // 필요한 Z 위치 설정
+    tempMesh.rotation.set(0, 0, 0);
+    tempMesh.scale.set(1, 1, 1);
+    tempMesh.updateMatrixWorld(true); // 월드 매트릭스 업데이트
+
     // 메쉬의 바운딩 박스를 계산하여 크기를 얻음
-    const boundingBox = new THREE.Box3().setFromObject(mesh);
+    const boundingBox = new THREE.Box3().setFromObject(tempMesh);
     const size = boundingBox.getSize(new THREE.Vector3());
 
     // 메쉬의 중심 좌표를 계산
@@ -33,25 +39,35 @@ export default function calculateMeshScaleByPixels(mesh, pixelWidth, pixelHeight
     // 카메라의 수평 시야각(FOV) 계산
     const halfHFov = Math.atan(Math.tan(halfVFov) * aspect);
 
-    // 화면 높이에 대한 카메라의 시야 범위 계산
-    const meshHeightInWorld = size.y;
+    // 화면 너비 및 높이에 대한 카메라의 시야 범위 계산
+    const meshWidthInNDC = 2 * Math.tan(halfHFov) * distance;
     const meshHeightInNDC = 2 * Math.tan(halfVFov) * distance;
 
-    // 화면 너비에 대한 카메라의 시야 범위 계산
-    const meshWidthInWorld = size.x;
-    const meshWidthInNDC = 2 * Math.tan(halfHFov) * distance;
-
     // 현재 메쉬의 픽셀 크기 계산
-    const currentPixelHeight = (meshHeightInWorld / meshHeightInNDC) * window.innerHeight;
-    const currentPixelWidth = (meshWidthInWorld / meshWidthInNDC) * window.innerWidth;
+    const currentPixelWidth = (size.x / meshWidthInNDC) * window.innerWidth;
+    const currentPixelHeight = (size.y / meshHeightInNDC) * window.innerHeight;
 
     // 원하는 픽셀 크기 대비 스케일 비율 계산
     const scaleX = pixelWidth / currentPixelWidth;
     const scaleY = pixelHeight / currentPixelHeight;
 
+    // 복사된 메쉬 정리
+    if (tempMesh) {
+        if (tempMesh.geometry) {
+            tempMesh.geometry.dispose();
+        }
+
+        if (tempMesh.material) {
+            if (Array.isArray(tempMesh.material)) {
+                tempMesh.material.forEach(material => material.dispose());
+            } else {
+                tempMesh.material.dispose();
+            }
+        }
+
+        tempMesh = null; // 참조 해제
+    }
+    
     // 스케일 비율 반환
-    return {
-        scaleX: mesh.scale.x * scaleX,
-        scaleY: mesh.scale.y * scaleY
-    };
+    return { scaleX, scaleY };
 }

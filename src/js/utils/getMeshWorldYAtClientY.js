@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import calculateMeshScaleByPixels from './calculateMeshScaleByPixels';
+import getMeshScaleByPixels from './getMeshScaleByPixels';
 
 /**
  * 메쉬를 특정 클라이언트 Y 좌표에 맞추기 위한 월드 Y 좌표를 계산하는 함수
@@ -20,9 +20,10 @@ export default function getMeshWorldYAtClientY(mesh, camera, renderer) {
 
     // 메쉬의 복사본을 생성합니다.
     let tempMesh = mesh.clone();
-    tempMesh.position.x = 0;
-    tempMesh.position.z = 3; // 필요한 Z 위치 설정
-    const { scaleX, scaleY } = calculateMeshScaleByPixels(tempMesh, 1190, 1904, tempCamera);
+    tempMesh.position.set(0, 0, 3);// 필요한 Z 위치 설정
+    tempMesh.rotation.set(0, 0, 0);
+    tempMesh.scale.set(1, 1, 1);
+    const { scaleX, scaleY } = getMeshScaleByPixels(tempMesh, 1190, 1904, tempCamera);
     tempMesh.scale.set(scaleX, scaleY, 0.1);
     tempMesh.updateMatrixWorld(true); // 월드 매트릭스 업데이트
 
@@ -35,8 +36,8 @@ export default function getMeshWorldYAtClientY(mesh, camera, renderer) {
     tempCamera.getWorldPosition(cameraWorldPos);
 
     // 복사본 메쉬의 경계 상자에서 높이를 계산합니다.
-    const box = new THREE.Box3().setFromObject(tempMesh);
-    const meshHeight = (box.max.y - box.min.y);
+    const boundingBox = new THREE.Box3().setFromObject(tempMesh);
+    const meshHeight = (boundingBox.max.y - boundingBox.min.y);
 
     // 월드 좌표를 NDC 좌표로 변환합니다.
     meshWorldPos.project(tempCamera);
@@ -59,7 +60,10 @@ export default function getMeshWorldYAtClientY(mesh, camera, renderer) {
 
     // 복사된 메쉬 정리
     if (tempMesh) {
-        if (tempMesh.geometry) tempMesh.geometry.dispose();
+        if (tempMesh.geometry) {
+            tempMesh.geometry.dispose();
+        }
+
         if (tempMesh.material) {
             if (Array.isArray(tempMesh.material)) {
                 tempMesh.material.forEach(material => material.dispose());
@@ -67,6 +71,7 @@ export default function getMeshWorldYAtClientY(mesh, camera, renderer) {
                 tempMesh.material.dispose();
             }
         }
+
         tempMesh = null; // 참조 해제
     }
 
