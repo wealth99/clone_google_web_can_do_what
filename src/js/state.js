@@ -25,6 +25,7 @@ class State {
         this._clickStartY = null, 
         this._clickStartTime = null,
         this._cardType = 'grid',
+        this._devicePixelRatio = null,
         this._bodyBgColors = [
             ['blue-mode', '#0073e6'],
             ['yellow-mode', '#ffbb25'],
