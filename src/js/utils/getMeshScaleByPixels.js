@@ -11,7 +11,7 @@ import * as THREE from 'three';
  */
 export default function getMeshScaleByPixels(mesh, pixelWidth, pixelHeight, camera) {
     let tempMesh = mesh.clone();
-    tempMesh.position.set(0, 0, 3);  // 필요한 Z 위치 설정
+    tempMesh.position.set(0, 0, 3);
     tempMesh.rotation.set(0, 0, 0);
     tempMesh.scale.set(1, 1, 1);
     tempMesh.updateMatrixWorld(true); // 월드 매트릭스 업데이트

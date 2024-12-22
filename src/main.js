@@ -28,18 +28,13 @@ export default function main() {
 
     const {
         roundedBoxGeometry,
-        getPixelSizeFromMesh,
-        getMeshScaleByPixels,
-        getMeshScreenPosition,
-        getMeshWorldYAtClientY,
         getCardMeshPosition,
         updateVariablesMeshSize,
         updateScrollSpacer,
         createCanvasTexture
     } = utils;
     
-    const devicePixelRatio = window.devicePixelRatio > 1 ? 2 : 1;
-
+    const devicePixelRatio = window.devicePixelRatio > 1 ? 1.5 : 1;
     const canvas = document.querySelector('#three-canvas');
     const renderer = new THREE.WebGLRenderer({
         canvas,
@@ -104,6 +99,7 @@ export default function main() {
     setState('_dirLight', dirLight);
     setState('_scene', scene);
     setState('_boxGeometry', boxGeometry);
+    setState('_devicePixelRatio', devicePixelRatio);
 
     // 카드 메쉬 만들기
     const createCardMesh = async () => {
@@ -186,32 +182,6 @@ export default function main() {
         }
 
         renderer.render(scene, camera);
-    }
-
-    window.setInfo = function() {
-        const enabledMesh = getState('enabledMesh');
-
-        window.firstObject = enabledMesh;
-
-        const { scaleX, scaleY } = getMeshScaleByPixels(enabledMesh, 1190, 1904, camera); // 오차범위 10픽셀?... 1200x1920
-        enabledMesh.scale.set(scaleX, scaleY);
-        
-        console.log("scaleX: " ,scaleX, "scaleY: ", scaleY);
-
-        const moveY = getMeshWorldYAtClientY(enabledMesh, camera, renderer);
-        enabledMesh.position.y = moveY;
-
-        console.log('moveY: ', moveY);
-
-        setTimeout(() => {
-            console.log('getPixelSizeFromMesh: ', getPixelSizeFromMesh(enabledMesh, camera, renderer))
-            console.log('getMeshScreenPosition: ', getMeshScreenPosition(enabledMesh, camera, renderer));
-        }, 500)
-    }
-
-    window.getPixel = () => {
-        const enabledMesh = getState('enabledMesh');
-        console.log('getPixelSizeFromMesh: ', getPixelSizeFromMesh(enabledMesh, camera, renderer))
     }
 
     window.addEventListener('scroll', handleWindowScroll);

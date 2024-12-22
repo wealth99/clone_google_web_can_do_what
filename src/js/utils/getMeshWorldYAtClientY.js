@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import appState from '../state';
 import getMeshScaleByPixels from './getMeshScaleByPixels';
 
 /**
@@ -10,7 +11,8 @@ import getMeshScaleByPixels from './getMeshScaleByPixels';
  * @returns {number} - 계산된 최종 월드 좌표의 Y 값
  */
 export default function getMeshWorldYAtClientY(mesh, camera, renderer) {
-    const devicePixelRatio = window.devicePixelRatio > 1 ? 2 : 1;
+    const getState = appState.getState.bind(appState);
+    const devicePixelRatio = getState('_devicePixelRatio');
 
     // 카메라의 복사본을 생성하여 z 위치를 4.1로 설정합니다.
     let tempCamera = camera.clone();
@@ -20,7 +22,7 @@ export default function getMeshWorldYAtClientY(mesh, camera, renderer) {
 
     // 메쉬의 복사본을 생성합니다.
     let tempMesh = mesh.clone();
-    tempMesh.position.set(0, 0, 3);// 필요한 Z 위치 설정
+    tempMesh.position.set(0, 0, 3); 
     tempMesh.rotation.set(0, 0, 0);
     tempMesh.scale.set(1, 1, 1);
     const { scaleX, scaleY } = getMeshScaleByPixels(tempMesh, 1190, 1904, tempCamera);

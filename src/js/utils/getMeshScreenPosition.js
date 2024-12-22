@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import appState from '../state';
 
 /**
  * 메쉬의 월드 좌표를 클라이언트 좌표로 변환하는 함수
@@ -8,7 +9,8 @@ import * as THREE from 'three';
  * @returns {Object} - 메쉬의 클라이언트 가로 및 세로 위치값
 */
 export default function getMeshScreenPosition(mesh, camera, renderer) {
-    const devicePixelRatio = window.devicePixelRatio > 1 ? 2 : 1;
+    const getState = appState.getState.bind(appState);
+    const devicePixelRatio = getState('_devicePixelRatio');
 
     // 메쉬의 월드 좌표를 벡터로 가져옵니다.
     const vector = new THREE.Vector3();
